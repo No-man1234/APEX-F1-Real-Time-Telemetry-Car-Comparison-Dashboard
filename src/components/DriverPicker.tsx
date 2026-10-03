@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Driver } from '../types/f1';
-import { ArrowLeftRight, Sparkles } from 'lucide-react';
+import { ArrowLeftRight } from 'lucide-react';
 
 interface DriverPickerProps {
   drivers: Driver[];
@@ -19,7 +19,7 @@ export const DriverPicker: React.FC<DriverPickerProps> = ({
   onSelectDriver2,
   onSwapDrivers,
 }) => {
-  const formatColor = (hex: string) => {
+  const formatColor = (hex?: string) => {
     if (!hex) return '#e10600';
     return hex.startsWith('#') ? hex : `#${hex}`;
   };
@@ -28,61 +28,70 @@ export const DriverPicker: React.FC<DriverPickerProps> = ({
   const c2Color = formatColor(driver2?.team_colour || 'FF8000');
 
   return (
-    <div className="bg-[#141620] border border-[#232735] rounded-xl p-4 shadow-lg mb-6">
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-        {/* CAR 1 SELECTOR */}
-        <div className="flex-1 w-full bg-[#191c28] border border-[#2b3042] rounded-lg p-3 relative overflow-hidden transition-all hover:border-[#3d455d]">
-          <div
-            className="absolute top-0 left-0 bottom-0 w-1.5"
-            style={{ backgroundColor: c1Color }}
-          />
+    <section aria-label="Telemetry Driver Channels" className="bg-pitwall-panel border border-pitwall-border rounded-lg p-3.5 mb-5 shadow-xs">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        {/* CHANNEL 1: REFERENCE CAR */}
+        <div className="flex-1 bg-pitwall-subpanel border border-pitwall-border rounded-md p-3 transition-colors hover:border-pitwall-borderLight">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-mono uppercase font-bold tracking-wider text-[#8f96a8] flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: c1Color }} />
-              Car 1 (Benchmark)
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2.5 h-2.5 rounded-xs shrink-0"
+                style={{ backgroundColor: c1Color }}
+                aria-hidden="true"
+              />
+              <span className="text-[11px] font-mono uppercase font-bold tracking-wider text-pitwall-textMuted">
+                Channel 1 • Reference Car
+              </span>
+            </div>
             {driver1 && (
-              <span className="text-xs font-mono font-bold text-white px-2 py-0.5 rounded bg-[#0d0e14] border border-[#2e3346]">
+              <span
+                className="text-xs font-mono font-bold px-1.5 py-0.2 rounded text-white"
+                style={{ backgroundColor: c1Color }}
+              >
                 #{driver1.driver_number}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#0d0e14] border border-[#2b3042] flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-11 h-11 rounded bg-pitwall-bg border border-pitwall-border flex items-center justify-center overflow-hidden shrink-0">
               {driver1?.headshot_url ? (
                 <img
                   src={driver1.headshot_url}
-                  alt={driver1.broadcast_name}
-                  className="w-full h-full object-cover scale-110"
+                  alt={`${driver1.broadcast_name} headshot`}
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
                   }}
                 />
               ) : (
-                <span className="font-mono font-black text-sm text-[#8f96a8]">#{driver1?.driver_number || 1}</span>
+                <span className="font-mono font-black text-xs text-pitwall-textMuted">
+                  {driver1?.name_acronym || 'C1'}
+                </span>
               )}
             </div>
 
             <div className="flex-1 min-w-0">
+              <label htmlFor="driver1-select" className="sr-only">Select Reference Driver</label>
               <select
+                id="driver1-select"
                 value={driver1?.driver_number || ''}
                 onChange={(e) => {
                   const d = drivers.find((x) => x.driver_number === Number(e.target.value));
                   if (d) onSelectDriver1(d);
                 }}
-                className="w-full bg-[#0d0e14] text-white font-bold text-sm px-3 py-1.5 rounded border border-[#2b3042] outline-none cursor-pointer focus:border-[#e10600]"
+                className="w-full bg-pitwall-bg text-pitwall-textBright font-mono font-bold text-xs sm:text-sm px-2.5 py-1.5 rounded border border-pitwall-border outline-none cursor-pointer focus-visible:ring-1 focus-visible:ring-[#e10600]"
               >
                 {drivers.map((d) => (
-                  <option key={d.driver_number} value={d.driver_number}>
-                    #{d.driver_number} {d.full_name} ({d.team_name})
+                  <option key={d.driver_number} value={d.driver_number} className="bg-pitwall-panel text-white">
+                    #{d.driver_number} {d.broadcast_name} ({d.team_name})
                   </option>
                 ))}
               </select>
-              <div className="flex items-center gap-2 mt-1 text-xs text-[#8f96a8] truncate">
-                <span className="font-semibold text-white">{driver1?.team_name || 'Team'}</span>
-                <span>•</span>
-                <span className="font-mono font-bold" style={{ color: c1Color }}>
+              <div className="flex items-center gap-2 mt-1 text-xs text-pitwall-textSecondary truncate font-mono">
+                <span className="font-semibold text-pitwall-textBright">{driver1?.team_name || 'Constructor'}</span>
+                <span className="text-pitwall-textMuted">•</span>
+                <span className="font-bold" style={{ color: c1Color }}>
                   {driver1?.name_acronym}
                 </span>
               </div>
@@ -90,71 +99,81 @@ export const DriverPicker: React.FC<DriverPickerProps> = ({
           </div>
         </div>
 
-        {/* SWAP BUTTON */}
-        <div className="flex flex-row lg:flex-col items-center gap-2 shrink-0">
+        {/* CHANNEL SWAP CONTROL */}
+        <div className="flex items-center justify-center py-1 lg:py-0 shrink-0">
           <button
             onClick={onSwapDrivers}
-            className="p-2.5 rounded-lg bg-[#191c28] hover:bg-[#25293a] text-[#8f96a8] hover:text-white border border-[#2b3042] transition-transform active:scale-95 shadow-md flex items-center gap-1.5 text-xs font-semibold"
-            title="Swap Car 1 and Car 2"
+            aria-label="Swap Reference and Comparison Channels"
+            className="p-2 rounded bg-pitwall-subpanel hover:bg-pitwall-card text-pitwall-textSecondary hover:text-white border border-pitwall-border transition-colors flex items-center gap-1.5 text-xs font-mono font-semibold"
+            title="Swap Channel 1 and Channel 2"
           >
-            <ArrowLeftRight className="w-4 h-4 text-[#e10600]" />
-            <span className="lg:hidden">Swap</span>
+            <ArrowLeftRight className="w-4 h-4 text-pitwall-textBright" aria-hidden="true" />
+            <span className="lg:hidden">Swap Channels</span>
           </button>
         </div>
 
-        {/* CAR 2 SELECTOR */}
-        <div className="flex-1 w-full bg-[#191c28] border border-[#2b3042] rounded-lg p-3 relative overflow-hidden transition-all hover:border-[#3d455d]">
-          <div
-            className="absolute top-0 left-0 bottom-0 w-1.5"
-            style={{ backgroundColor: c2Color }}
-          />
+        {/* CHANNEL 2: COMPARISON CAR */}
+        <div className="flex-1 bg-pitwall-subpanel border border-pitwall-border rounded-md p-3 transition-colors hover:border-pitwall-borderLight">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-mono uppercase font-bold tracking-wider text-[#8f96a8] flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: c2Color }} />
-              Car 2 (Challenger)
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2.5 h-2.5 rounded-xs shrink-0"
+                style={{ backgroundColor: c2Color }}
+                aria-hidden="true"
+              />
+              <span className="text-[11px] font-mono uppercase font-bold tracking-wider text-pitwall-textMuted">
+                Channel 2 • Comparison Car
+              </span>
+            </div>
             {driver2 && (
-              <span className="text-xs font-mono font-bold text-white px-2 py-0.5 rounded bg-[#0d0e14] border border-[#2e3346]">
+              <span
+                className="text-xs font-mono font-bold px-1.5 py-0.2 rounded text-white"
+                style={{ backgroundColor: c2Color }}
+              >
                 #{driver2.driver_number}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#0d0e14] border border-[#2b3042] flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-11 h-11 rounded bg-pitwall-bg border border-pitwall-border flex items-center justify-center overflow-hidden shrink-0">
               {driver2?.headshot_url ? (
                 <img
                   src={driver2.headshot_url}
-                  alt={driver2.broadcast_name}
-                  className="w-full h-full object-cover scale-110"
+                  alt={`${driver2.broadcast_name} headshot`}
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
                   }}
                 />
               ) : (
-                <span className="font-mono font-black text-sm text-[#8f96a8]">#{driver2?.driver_number || 4}</span>
+                <span className="font-mono font-black text-xs text-pitwall-textMuted">
+                  {driver2?.name_acronym || 'C2'}
+                </span>
               )}
             </div>
 
             <div className="flex-1 min-w-0">
+              <label htmlFor="driver2-select" className="sr-only">Select Comparison Driver</label>
               <select
+                id="driver2-select"
                 value={driver2?.driver_number || ''}
                 onChange={(e) => {
                   const d = drivers.find((x) => x.driver_number === Number(e.target.value));
                   if (d) onSelectDriver2(d);
                 }}
-                className="w-full bg-[#0d0e14] text-white font-bold text-sm px-3 py-1.5 rounded border border-[#2b3042] outline-none cursor-pointer focus:border-[#e10600]"
+                className="w-full bg-pitwall-bg text-pitwall-textBright font-mono font-bold text-xs sm:text-sm px-2.5 py-1.5 rounded border border-pitwall-border outline-none cursor-pointer focus-visible:ring-1 focus-visible:ring-[#e10600]"
               >
                 {drivers.map((d) => (
-                  <option key={d.driver_number} value={d.driver_number}>
-                    #{d.driver_number} {d.full_name} ({d.team_name})
+                  <option key={d.driver_number} value={d.driver_number} className="bg-pitwall-panel text-white">
+                    #{d.driver_number} {d.broadcast_name} ({d.team_name})
                   </option>
                 ))}
               </select>
-              <div className="flex items-center gap-2 mt-1 text-xs text-[#8f96a8] truncate">
-                <span className="font-semibold text-white">{driver2?.team_name || 'Team'}</span>
-                <span>•</span>
-                <span className="font-mono font-bold" style={{ color: c2Color }}>
+              <div className="flex items-center gap-2 mt-1 text-xs text-pitwall-textSecondary truncate font-mono">
+                <span className="font-semibold text-pitwall-textBright">{driver2?.team_name || 'Constructor'}</span>
+                <span className="text-pitwall-textMuted">•</span>
+                <span className="font-bold" style={{ color: c2Color }}>
                   {driver2?.name_acronym}
                 </span>
               </div>
@@ -163,17 +182,18 @@ export const DriverPicker: React.FC<DriverPickerProps> = ({
         </div>
       </div>
 
-      {/* Quick Rivalry Presets */}
-      <div className="mt-3 pt-3 border-t border-[#1e2230] flex flex-wrap items-center gap-2">
-        <span className="text-[11px] text-[#71788d] flex items-center gap-1 font-mono font-medium">
-          <Sparkles className="w-3 h-3 text-amber-400" /> Rivalry Presets:
+      {/* Benchmark Pairings Bar */}
+      <div className="mt-3 pt-2.5 border-t border-pitwall-border flex flex-wrap items-center gap-1.5 text-xs font-mono">
+        <span className="text-[11px] text-pitwall-textMuted mr-1">
+          Quick Benchmark Pairs:
         </span>
         {[
-          { label: 'VER vs NOR', d1: 1, d2: 4 },
-          { label: 'LEC vs HAM', d1: 16, d2: 44 },
-          { label: 'NOR vs PIA', d1: 4, d2: 81 },
-          { label: 'RUS vs ANT', d1: 63, d2: 12 },
-          { label: 'SAI vs ALB', d1: 55, d2: 23 },
+          { label: 'VER / NOR', d1: 1, d2: 4 },
+          { label: 'LEC / HAM', d1: 16, d2: 44 },
+          { label: 'NOR / PIA', d1: 4, d2: 81 },
+          { label: 'RUS / ANT', d1: 63, d2: 12 },
+          { label: 'SAI / ALB', d1: 55, d2: 23 },
+          { label: 'GAS / COL', d1: 10, d2: 43 },
         ].map((preset) => (
           <button
             key={preset.label}
@@ -185,12 +205,12 @@ export const DriverPicker: React.FC<DriverPickerProps> = ({
                 onSelectDriver2(p2);
               }
             }}
-            className="text-[11px] px-2.5 py-1 rounded bg-[#191c28] hover:bg-[#25293a] text-[#a0a8be] hover:text-white border border-[#2b3042] transition-colors font-mono font-semibold"
+            className="text-[11px] px-2 py-0.5 rounded bg-pitwall-subpanel hover:bg-pitwall-card text-pitwall-textSecondary hover:text-white border border-pitwall-border transition-colors font-semibold"
           >
             {preset.label}
           </button>
         ))}
       </div>
-    </div>
+    </section>
   );
 };

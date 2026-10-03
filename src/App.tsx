@@ -269,8 +269,8 @@ export const App: React.FC = () => {
   const currentPoint = comparisonData[currentPointIndex] || comparisonData[0] || null;
 
   return (
-    <div className="min-h-screen bg-[#0b0c10] text-[#e0e2ec] flex flex-col font-f1">
-      {/* Top Header & Navigation */}
+    <div className="min-h-screen bg-pitwall-bg text-pitwall-textBright flex flex-col font-f1">
+      {/* Header & Controls */}
       <Header
         selectedYear={selectedYear}
         onYearChange={handleYearChange}
@@ -288,16 +288,16 @@ export const App: React.FC = () => {
         onTabChange={setActiveTab}
       />
 
-      {/* Main Dashboard Container */}
-      <main className="flex-1 max-w-[1700px] w-full mx-auto px-4 sm:px-6 py-6">
-        {/* Session & Weather Status Banner */}
+      {/* Main Pit-Wall Dashboard */}
+      <main className="flex-1 max-w-[1720px] w-full mx-auto px-4 sm:px-6 py-4">
+        {/* Session Status Strip */}
         <SessionSummaryBanner
           meeting={selectedMeeting}
           session={selectedSession}
           weather={weather}
         />
 
-        {/* Head-to-Head Driver Picker */}
+        {/* Dual-Channel Driver Picker */}
         <DriverPicker
           drivers={drivers}
           driver1={driver1}
@@ -307,9 +307,9 @@ export const App: React.FC = () => {
           onSwapDrivers={handleSwapDrivers}
         />
 
-        {/* Dynamic Tab Views */}
+        {/* Active View Container */}
         {activeTab === 'telemetry' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <CarTelemetryComparison
               driver1={driver1}
               driver2={driver2}
@@ -328,7 +328,7 @@ export const App: React.FC = () => {
         )}
 
         {activeTab === 'cockpit' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <CockpitHUD
               driver1={driver1}
               driver2={driver2}
@@ -366,13 +366,17 @@ export const App: React.FC = () => {
         )}
 
         {activeTab === 'track' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
               <TrackMinimap
                 meeting={selectedMeeting}
                 driver1={driver1}
                 driver2={driver2}
                 progressPercentage={currentPoint?.percentage || 50}
+                onTrackClick={(pct) => {
+                  const targetIdx = Math.round((pct / 100) * (comparisonData.length - 1));
+                  setCurrentPointIndex(targetIdx);
+                }}
               />
             </div>
             <div>
@@ -403,18 +407,18 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Sleek F1 Footer */}
-      <footer className="border-t border-[#1a1d29] bg-[#0c0e14] py-6 px-4 text-center text-xs text-[#6a7185] font-mono">
-        <div className="max-w-[1700px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Engineering Footer */}
+      <footer className="border-t border-pitwall-border bg-pitwall-panel py-3 px-4 text-xs text-pitwall-textMuted font-mono">
+        <div className="max-w-[1720px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Connected to OpenF1 API (Autonomous Session Ingestion)</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+            <span>OpenF1 v1 API Integration • Automatic Session Discovery</span>
           </div>
           <div>
-            Zero Manual Updates Required • Automatically syncs every Grand Prix weekend
+            Data sourced directly from official timing feeds without manual maintenance.
           </div>
           <div>
-            APEX F1 Vehicle Dynamics Hub
+            APEX Telemetry Workbench
           </div>
         </div>
       </footer>

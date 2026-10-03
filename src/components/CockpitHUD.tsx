@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { Driver, CarTelemetryComparisonPoint } from '../types/f1';
-import { Gauge, Zap, Wind } from 'lucide-react';
 
 interface CockpitHUDProps {
   driver1: Driver | null;
@@ -23,7 +22,6 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
   const c1Color = formatColor(driver1?.team_colour || '3671C6');
   const c2Color = formatColor(driver2?.team_colour || 'FF8000');
 
-  // Values from current point or realistic baseline defaults
   const c1Speed = currentPoint ? currentPoint.c1Speed : 295;
   const c2Speed = currentPoint ? currentPoint.c2Speed : 291;
   const c1Throttle = currentPoint ? currentPoint.c1Throttle : 100;
@@ -41,7 +39,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
   const toSpeed = (val: number) => (useMph ? Math.round(val * 0.621371) : val);
   const speedUnit = useMph ? 'MPH' : 'KM/H';
 
-  // Render F1 Shift Lights Bar (15 LEDs)
+  // 15-LED Sequential Rev Counter (5 Green, 5 Red, 5 Blue)
   const renderShiftLights = (rpm: number) => {
     const totalLeds = 15;
     const minRpm = 6000;
@@ -50,25 +48,27 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
       totalLeds,
       Math.max(0, Math.floor(((rpm - minRpm) / (maxRpm - minRpm)) * totalLeds))
     );
-    const isRedline = rpm >= 12200;
+    const isShiftWindow = rpm >= 12100;
 
     return (
-      <div className={`flex items-center justify-center gap-1.5 p-2 rounded bg-[#090a0f] border border-[#232735] ${isRedline ? 'animate-pulse' : ''}`}>
+      <div className="flex items-center justify-between gap-1 p-1.5 rounded bg-[#090b10] border border-pitwall-border">
         {Array.from({ length: totalLeds }).map((_, i) => {
-          let activeColor = '#22c55e'; // Green (1-5)
-          if (i >= 5 && i < 10) activeColor = '#ef4444'; // Red (6-10)
-          if (i >= 10) activeColor = '#3b82f6'; // Blue (11-15)
+          let ledColor = '#00d26a'; // Green 1-5
+          if (i >= 5 && i < 10) ledColor = '#e10600'; // Red 6-10
+          if (i >= 10) ledColor = '#1e88e5'; // Blue 11-15
 
           const isActive = i < activeLeds;
           return (
             <div
               key={i}
-              className="w-3.5 h-3.5 rounded-full transition-all duration-75"
+              className={`flex-1 h-3 rounded-xs transition-colors ${
+                isShiftWindow && i >= 10 ? 'animate-pulse' : ''
+              }`}
               style={{
-                backgroundColor: isActive ? activeColor : '#1a1d29',
-                boxShadow: isActive ? `0 0 8px ${activeColor}` : 'none',
-                opacity: isActive ? 1 : 0.3,
+                backgroundColor: isActive ? ledColor : '#181c28',
+                border: `1px solid ${isActive ? ledColor : '#252a3b'}`,
               }}
+              aria-hidden="true"
             />
           );
         })}
@@ -76,34 +76,157 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
     );
   };
 
-  return (
-    <div className="bg-[#12141c] border border-[#232735] rounded-xl p-5 shadow-2xl mb-6">
-      {/* HUD Header */}
-      <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#1f2331]">
-        <div className="flex items-center gap-2">
-          <Gauge className="w-5 h-5 text-[#e10600]" />
-          <h2 className="text-base font-bold text-white tracking-wide uppercase font-f1">
-            Cockpit Telemetry HUD
-          </h2>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#1e2230] text-[#9aa2b5]">
-            Dual Stream Gauges
+  const renderWheelDisplay = (
+    driver: Driver | null,
+    color: string,
+    speed: number,
+    gear: number,
+    rpm: number,
+    throttle: number,
+    brake: number,
+    drs: boolean,
+    delta: number,
+    channelLabel: string
+  ) => {
+    return (
+      <div className="bg-pitwall-subpanel border border-pitwall-border rounded-lg p-4 flex flex-col justify-between">
+        {/* Steering Wheel Header */}
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-pitwall-border">
+          <div className="flex items-center gap-2">
+            <span
+              className="px-1.5 py-0.5 rounded text-xs font-mono font-bold text-white"
+              style={{ backgroundColor: color }}
+            >
+              #{driver?.driver_number || 1}
+            </span>
+            <div>
+              <span className="font-mono font-bold text-xs text-pitwall-textBright block leading-tight">
+                {driver?.full_name || 'Driver'}
+              </span>
+              <span className="text-[10px] text-pitwall-textMuted font-mono">
+                {channelLabel} • {driver?.team_name}
+              </span>
+            </div>
+          </div>
+
+          {/* DRS State */}
+          <div
+            className={`px-2.5 py-0.5 rounded text-[11px] font-mono font-bold border ${
+              drs
+                ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/50'
+                : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border'
+            }`}
+          >
+            {drs ? 'DRS ENABLED' : 'DRS CLOSED'}
+          </div>
+        </div>
+
+        {/* 15-LED Shift Light Bar */}
+        <div className="mb-3">
+          {renderShiftLights(rpm)}
+          <div className="flex justify-between items-center text-[10px] font-mono text-pitwall-textMuted mt-1">
+            <span>6k</span>
+            <span className="text-white font-bold tabular-nums">{rpm.toLocaleString()} RPM</span>
+            <span>12.5k</span>
+          </div>
+        </div>
+
+        {/* PCU-8D Display Core */}
+        <div className="bg-[#08090d] border border-pitwall-border rounded p-3 grid grid-cols-3 gap-2 items-center mb-3 text-center font-mono">
+          {/* Velocity Display */}
+          <div className="col-span-2 bg-[#0d0f15] border border-pitwall-border/80 rounded p-2">
+            <span className="text-[10px] text-pitwall-textMuted block uppercase">VELOCITY</span>
+            <div className="flex items-baseline justify-center gap-1 mt-0.5">
+              <span className="text-4xl font-extrabold text-white tracking-tighter tabular-nums">
+                {toSpeed(speed)}
+              </span>
+              <span className="text-[11px] text-pitwall-textMuted font-bold">{speedUnit}</span>
+            </div>
+          </div>
+
+          {/* Large Gear Character */}
+          <div className="bg-[#0d0f15] border border-pitwall-border/80 rounded p-2 flex flex-col justify-center">
+            <span className="text-[10px] text-pitwall-textMuted block uppercase">GEAR</span>
+            <span className="text-4xl font-black text-amber-400 tabular-nums">
+              {gear > 0 ? gear : 'N'}
+            </span>
+          </div>
+        </div>
+
+        {/* Telemetry Delta Pill */}
+        <div className="bg-pitwall-bg border border-pitwall-border rounded p-2 flex items-center justify-between text-xs font-mono mb-3">
+          <span className="text-pitwall-textMuted text-[11px]">LAP DELTA (Δt):</span>
+          <span
+            className={`font-bold tabular-nums ${
+              delta >= 0 ? 'text-emerald-400' : 'text-rose-400'
+            }`}
+          >
+            {delta >= 0 ? `+${delta.toFixed(3)}s` : `${delta.toFixed(3)}s`}
           </span>
         </div>
 
+        {/* Graduated Pedal Gauges */}
+        <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+          {/* Throttle Bar */}
+          <div className="bg-[#0a0c12] border border-pitwall-border rounded p-2">
+            <div className="flex justify-between items-center text-[11px] mb-1">
+              <span className="text-emerald-400 font-bold">THROTTLE</span>
+              <span className="text-white font-bold tabular-nums">{throttle}%</span>
+            </div>
+            <div className="w-full h-2.5 bg-pitwall-bg rounded-xs overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 transition-all duration-75"
+                style={{ width: `${throttle}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Brake Bar */}
+          <div className="bg-[#0a0c12] border border-pitwall-border rounded p-2">
+            <div className="flex justify-between items-center text-[11px] mb-1">
+              <span className="text-rose-400 font-bold">BRAKE</span>
+              <span className="text-white font-bold tabular-nums">{brake}%</span>
+            </div>
+            <div className="w-full h-2.5 bg-pitwall-bg rounded-xs overflow-hidden">
+              <div
+                className="h-full bg-rose-500 transition-all duration-75"
+                style={{ width: `${brake}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <section aria-label="Cockpit Telemetry Gauges" className="bg-pitwall-panel border border-pitwall-border rounded-lg p-4 mb-5 shadow-xs">
+      <div className="flex items-center justify-between pb-3 mb-3 border-b border-pitwall-border">
+        <div>
+          <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-pitwall-textBright">
+            Cockpit Telemetry Gauges
+          </h2>
+          <p className="text-xs text-pitwall-textMuted font-mono">
+            Dual Steering Wheel Displays • Shift Light Sequencing • Pedal Travel
+          </p>
+        </div>
+
         {/* Speed Unit Toggle */}
-        <div className="flex items-center gap-2 bg-[#1a1d29] p-1 rounded-md border border-[#2b3042] text-xs font-mono font-bold">
+        <div className="flex items-center gap-1 bg-pitwall-subpanel p-0.5 rounded border border-pitwall-border text-xs font-mono">
           <button
             onClick={() => setUseMph(false)}
-            className={`px-2.5 py-1 rounded transition-colors ${
-              !useMph ? 'bg-[#e10600] text-white shadow-sm' : 'text-[#8f96a8] hover:text-white'
+            aria-pressed={!useMph}
+            className={`px-2 py-0.5 rounded font-bold text-[11px] ${
+              !useMph ? 'bg-pitwall-card text-white' : 'text-pitwall-textMuted hover:text-white'
             }`}
           >
             KM/H
           </button>
           <button
             onClick={() => setUseMph(true)}
-            className={`px-2.5 py-1 rounded transition-colors ${
-              useMph ? 'bg-[#e10600] text-white shadow-sm' : 'text-[#8f96a8] hover:text-white'
+            aria-pressed={useMph}
+            className={`px-2 py-0.5 rounded font-bold text-[11px] ${
+              useMph ? 'bg-pitwall-card text-white' : 'text-pitwall-textMuted hover:text-white'
             }`}
           >
             MPH
@@ -111,254 +234,33 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
         </div>
       </div>
 
-      {/* DUAL COCKPIT HUD DISPLAY */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-        {/* CAR 1 COCKPIT */}
-        <div className="bg-[#171a25] border border-[#282d3e] rounded-xl p-5 relative overflow-hidden shadow-lg">
-          <div
-            className="absolute top-0 left-0 right-0 h-1.5"
-            style={{ backgroundColor: c1Color }}
-          />
-
-          {/* Driver Badge */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <span
-                className="font-mono font-black text-xl px-2 py-0.5 rounded text-white"
-                style={{ backgroundColor: c1Color }}
-              >
-                #{driver1?.driver_number || 1}
-              </span>
-              <div>
-                <h3 className="font-extrabold text-base text-white leading-tight">
-                  {driver1?.full_name || 'Driver 1'}
-                </h3>
-                <p className="text-xs text-[#8f96a8]">{driver1?.team_name || 'Team 1'}</p>
-              </div>
-            </div>
-
-            {/* DRS Pill */}
-            <div
-              className={`px-3 py-1 rounded-full text-xs font-mono font-extrabold tracking-wider flex items-center gap-1.5 border transition-all ${
-                c1Drs
-                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/60 shadow-glow-cyan animate-pulse'
-                  : 'bg-[#12141c] text-[#555c70] border-[#242837]'
-              }`}
-            >
-              <Wind className="w-3.5 h-3.5" />
-              <span>{c1Drs ? 'DRS ACTIVE' : 'DRS CLOSED'}</span>
-            </div>
-          </div>
-
-          {/* Shift Lights */}
-          <div className="mb-4">
-            {renderShiftLights(c1Rpm)}
-            <div className="flex justify-between items-center text-[10px] font-mono text-[#8f96a8] mt-1 px-1">
-              <span>6,000 RPM</span>
-              <span className="font-bold text-white">{c1Rpm.toLocaleString()} RPM</span>
-              <span className="text-red-400">12,500 REV</span>
-            </div>
-          </div>
-
-          {/* Central Gauges Grid */}
-          <div className="grid grid-cols-3 gap-3 items-center">
-            {/* Speed Gauge */}
-            <div className="col-span-2 bg-[#0d0e14] border border-[#232735] rounded-xl p-4 flex flex-col items-center justify-center relative">
-              <span className="text-[11px] font-mono text-[#8f96a8] tracking-widest uppercase">
-                VELOCITY
-              </span>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="font-mono font-black text-5xl text-white tracking-tighter">
-                  {toSpeed(c1Speed)}
-                </span>
-                <span className="font-mono font-bold text-xs text-[#8f96a8]">{speedUnit}</span>
-              </div>
-
-              {/* Speed difference pill */}
-              <div className="mt-2 text-[11px] font-mono px-2 py-0.5 rounded bg-[#161822] text-[#9aa2b5] border border-[#252a3b]">
-                Delta: {c1Speed - c2Speed >= 0 ? `+${c1Speed - c2Speed}` : c1Speed - c2Speed} km/h
-              </div>
-            </div>
-
-            {/* Big Gear Display */}
-            <div className="bg-[#0d0e14] border border-[#232735] rounded-xl p-4 flex flex-col items-center justify-center">
-              <span className="text-[11px] font-mono text-[#8f96a8] tracking-widest uppercase">
-                GEAR
-              </span>
-              <span className="font-mono font-black text-5xl text-amber-400 mt-1">
-                {c1Gear > 0 ? c1Gear : 'N'}
-              </span>
-              <span className="text-[10px] font-mono text-[#8f96a8] mt-2">DOG RING</span>
-            </div>
-          </div>
-
-          {/* Pedals: Throttle & Brake */}
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {/* Throttle */}
-            <div className="bg-[#0d0e14] border border-[#232735] rounded-lg p-2.5">
-              <div className="flex justify-between items-center text-xs font-mono mb-1.5">
-                <span className="text-emerald-400 font-bold">THROTTLE</span>
-                <span className="font-bold text-white">{c1Throttle}%</span>
-              </div>
-              <div className="w-full h-3 bg-[#191c28] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-75"
-                  style={{ width: `${c1Throttle}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Brake */}
-            <div className="bg-[#0d0e14] border border-[#232735] rounded-lg p-2.5">
-              <div className="flex justify-between items-center text-xs font-mono mb-1.5">
-                <span className="text-rose-400 font-bold">BRAKE</span>
-                <span className="font-bold text-white">{c1Brake}%</span>
-              </div>
-              <div className="w-full h-3 bg-[#191c28] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-rose-600 to-rose-400 transition-all duration-75"
-                  style={{ width: `${c1Brake}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* CAR 2 COCKPIT */}
-        <div className="bg-[#171a25] border border-[#282d3e] rounded-xl p-5 relative overflow-hidden shadow-lg">
-          <div
-            className="absolute top-0 left-0 right-0 h-1.5"
-            style={{ backgroundColor: c2Color }}
-          />
-
-          {/* Driver Badge */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <span
-                className="font-mono font-black text-xl px-2 py-0.5 rounded text-white"
-                style={{ backgroundColor: c2Color }}
-              >
-                #{driver2?.driver_number || 4}
-              </span>
-              <div>
-                <h3 className="font-extrabold text-base text-white leading-tight">
-                  {driver2?.full_name || 'Driver 2'}
-                </h3>
-                <p className="text-xs text-[#8f96a8]">{driver2?.team_name || 'Team 2'}</p>
-              </div>
-            </div>
-
-            {/* DRS Pill */}
-            <div
-              className={`px-3 py-1 rounded-full text-xs font-mono font-extrabold tracking-wider flex items-center gap-1.5 border transition-all ${
-                c2Drs
-                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/60 shadow-glow-cyan animate-pulse'
-                  : 'bg-[#12141c] text-[#555c70] border-[#242837]'
-              }`}
-            >
-              <Wind className="w-3.5 h-3.5" />
-              <span>{c2Drs ? 'DRS ACTIVE' : 'DRS CLOSED'}</span>
-            </div>
-          </div>
-
-          {/* Shift Lights */}
-          <div className="mb-4">
-            {renderShiftLights(c2Rpm)}
-            <div className="flex justify-between items-center text-[10px] font-mono text-[#8f96a8] mt-1 px-1">
-              <span>6,000 RPM</span>
-              <span className="font-bold text-white">{c2Rpm.toLocaleString()} RPM</span>
-              <span className="text-red-400">12,500 REV</span>
-            </div>
-          </div>
-
-          {/* Central Gauges Grid */}
-          <div className="grid grid-cols-3 gap-3 items-center">
-            {/* Speed Gauge */}
-            <div className="col-span-2 bg-[#0d0e14] border border-[#232735] rounded-xl p-4 flex flex-col items-center justify-center relative">
-              <span className="text-[11px] font-mono text-[#8f96a8] tracking-widest uppercase">
-                VELOCITY
-              </span>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="font-mono font-black text-5xl text-white tracking-tighter">
-                  {toSpeed(c2Speed)}
-                </span>
-                <span className="font-mono font-bold text-xs text-[#8f96a8]">{speedUnit}</span>
-              </div>
-
-              {/* Speed difference pill */}
-              <div className="mt-2 text-[11px] font-mono px-2 py-0.5 rounded bg-[#161822] text-[#9aa2b5] border border-[#252a3b]">
-                Delta: {c2Speed - c1Speed >= 0 ? `+${c2Speed - c1Speed}` : c2Speed - c1Speed} km/h
-              </div>
-            </div>
-
-            {/* Big Gear Display */}
-            <div className="bg-[#0d0e14] border border-[#232735] rounded-xl p-4 flex flex-col items-center justify-center">
-              <span className="text-[11px] font-mono text-[#8f96a8] tracking-widest uppercase">
-                GEAR
-              </span>
-              <span className="font-mono font-black text-5xl text-amber-400 mt-1">
-                {c2Gear > 0 ? c2Gear : 'N'}
-              </span>
-              <span className="text-[10px] font-mono text-[#8f96a8] mt-2">DOG RING</span>
-            </div>
-          </div>
-
-          {/* Pedals: Throttle & Brake */}
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {/* Throttle */}
-            <div className="bg-[#0d0e14] border border-[#232735] rounded-lg p-2.5">
-              <div className="flex justify-between items-center text-xs font-mono mb-1.5">
-                <span className="text-emerald-400 font-bold">THROTTLE</span>
-                <span className="font-bold text-white">{c2Throttle}%</span>
-              </div>
-              <div className="w-full h-3 bg-[#191c28] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-75"
-                  style={{ width: `${c2Throttle}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Brake */}
-            <div className="bg-[#0d0e14] border border-[#232735] rounded-lg p-2.5">
-              <div className="flex justify-between items-center text-xs font-mono mb-1.5">
-                <span className="text-rose-400 font-bold">BRAKE</span>
-                <span className="font-bold text-white">{c2Brake}%</span>
-              </div>
-              <div className="w-full h-3 bg-[#191c28] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-rose-600 to-rose-400 transition-all duration-75"
-                  style={{ width: `${c2Brake}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Dual Steering Wheel Displays Side-by-Side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {renderWheelDisplay(
+          driver1,
+          c1Color,
+          c1Speed,
+          c1Gear,
+          c1Rpm,
+          c1Throttle,
+          c1Brake,
+          c1Drs,
+          timeDelta,
+          'Reference Car'
+        )}
+        {renderWheelDisplay(
+          driver2,
+          c2Color,
+          c2Speed,
+          c2Gear,
+          c2Rpm,
+          c2Throttle,
+          c2Brake,
+          c2Drs,
+          -timeDelta,
+          'Challenger Car'
+        )}
       </div>
-
-      {/* Synchronized Lap Delta Banner */}
-      <div className="mt-5 p-3 rounded-lg bg-[#0d0e14] border border-[#202434] flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-400" />
-          <span className="text-[#8f96a8]">Live Lap Delta at Current Point:</span>
-          <span
-            className={`font-black text-sm px-2 py-0.5 rounded ${
-              timeDelta > 0
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-            }`}
-          >
-            {timeDelta > 0 ? `+${timeDelta.toFixed(3)}s` : `${timeDelta.toFixed(3)}s`}
-          </span>
-          <span className="text-[#71788d]">
-            ({timeDelta > 0 ? driver1?.name_acronym : driver2?.name_acronym} ahead)
-          </span>
-        </div>
-
-        <div className="text-[#71788d]">
-          Lap Distance: <span className="text-white font-bold">{currentPoint ? currentPoint.distance : 2400}m</span> / 5,300m
-        </div>
-      </div>
-    </div>
+    </section>
   );
 };

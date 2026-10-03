@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Driver, CarAnalysisStats } from '../types/f1';
-import { Radar, Award, Zap, Compass, Flame } from 'lucide-react';
 
 interface HeadToHeadRadarProps {
   driver1: Driver | null;
@@ -23,128 +22,153 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
   const c1Color = formatColor(driver1?.team_colour || '3671C6');
   const c2Color = formatColor(driver2?.team_colour || 'FF8000');
 
-  // Compute normalized scores out of 100
-  const scores = [
+  // Concrete engineering telemetry scores
+  const metrics = [
     {
-      category: 'Top Speed / Low Drag',
-      c1: Math.min(100, Math.round((stats1.topSpeed / 355) * 100)),
-      c2: Math.min(100, Math.round((stats2.topSpeed / 355) * 100)),
-      description: 'Efficiency down main straight with DRS open',
+      category: 'Terminal Speed / Aero Drag',
+      c1Val: `${stats1.topSpeed} km/h`,
+      c2Val: `${stats2.topSpeed} km/h`,
+      c1Pct: Math.min(100, Math.round((stats1.topSpeed / 355) * 100)),
+      c2Pct: Math.min(100, Math.round((stats2.topSpeed / 355) * 100)),
+      diff: stats1.topSpeed - stats2.topSpeed,
+      unit: 'km/h',
+      description: 'End-of-straight terminal velocity with DRS deployed',
     },
     {
-      category: 'Slow Corner Apex Speed',
-      c1: Math.min(100, Math.round((stats1.apexSpeed / 85) * 100)),
-      c2: Math.min(100, Math.round((stats2.apexSpeed / 85) * 100)),
-      description: 'Mechanical grip through slow chicanes (Turn 1/2)',
+      category: 'Low-Speed Apex Speed',
+      c1Val: `${stats1.apexSpeed} km/h`,
+      c2Val: `${stats2.apexSpeed} km/h`,
+      c1Pct: Math.min(100, Math.round((stats1.apexSpeed / 85) * 100)),
+      c2Pct: Math.min(100, Math.round((stats2.apexSpeed / 85) * 100)),
+      diff: stats1.apexSpeed - stats2.apexSpeed,
+      unit: 'km/h',
+      description: 'Mechanical grip and minimum apex speed in Turn 1/2 chicanes',
     },
     {
-      category: 'Throttle Aggression',
-      c1: stats1.avgThrottle,
-      c2: stats2.avgThrottle,
-      description: 'Average throttle input percentage per lap',
+      category: 'Full-Throttle Duty Cycle',
+      c1Val: `${stats1.timeUnderFullThrottle}%`,
+      c2Val: `${stats2.timeUnderFullThrottle}%`,
+      c1Pct: stats1.timeUnderFullThrottle,
+      c2Pct: stats2.timeUnderFullThrottle,
+      diff: stats1.timeUnderFullThrottle - stats2.timeUnderFullThrottle,
+      unit: '%',
+      description: 'Percentage of cumulative lap distance driven at 100% throttle',
     },
     {
-      category: 'Braking Commitment',
-      c1: Math.min(100, 70 + stats1.hardBrakingEvents * 6),
-      c2: Math.min(100, 70 + stats2.hardBrakingEvents * 6),
-      description: 'Peak braking force and late apex deceleration',
+      category: 'Average Throttle Input',
+      c1Val: `${stats1.avgThrottle}%`,
+      c2Val: `${stats2.avgThrottle}%`,
+      c1Pct: stats1.avgThrottle,
+      c2Pct: stats2.avgThrottle,
+      diff: stats1.avgThrottle - stats2.avgThrottle,
+      unit: '%',
+      description: 'Mean throttle application rate across braking and cornering phases',
     },
     {
-      category: 'Power Delivery / Full Throttle',
-      c1: stats1.timeUnderFullThrottle,
-      c2: stats2.timeUnderFullThrottle,
-      description: 'Percentage of the lap driven at 100% throttle',
+      category: 'Heavy Braking Applications',
+      c1Val: `${stats1.hardBrakingEvents} zones`,
+      c2Val: `${stats2.hardBrakingEvents} zones`,
+      c1Pct: Math.min(100, 60 + stats1.hardBrakingEvents * 8),
+      c2Pct: Math.min(100, 60 + stats2.hardBrakingEvents * 8),
+      diff: stats1.hardBrakingEvents - stats2.hardBrakingEvents,
+      unit: 'zones',
+      description: 'Deceleration zones exceeding 5G threshold and 80%+ brake pressure',
     },
     {
-      category: 'Engine RPM Utilization',
-      c1: Math.min(100, Math.round((stats1.avgRpm / 12200) * 100)),
-      c2: Math.min(100, Math.round((stats2.avgRpm / 12200) * 100)),
-      description: 'Gear shift optimization and rev-band discipline',
+      category: 'Engine RPM Powerband',
+      c1Val: `${stats1.avgRpm.toLocaleString()} RPM`,
+      c2Val: `${stats2.avgRpm.toLocaleString()} RPM`,
+      c1Pct: Math.min(100, Math.round((stats1.avgRpm / 12200) * 100)),
+      c2Pct: Math.min(100, Math.round((stats2.avgRpm / 12200) * 100)),
+      diff: stats1.avgRpm - stats2.avgRpm,
+      unit: 'RPM',
+      description: 'Average engine speed through acceleration and gear-shift phases',
     },
   ];
 
   return (
-    <div className="bg-[#12141c] border border-[#232735] rounded-xl p-5 shadow-2xl mb-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 mb-4 border-b border-[#1f2331]">
+    <section aria-label="Vehicle Dynamics Telemetry Comparison" className="bg-pitwall-panel border border-pitwall-border rounded-lg p-4 mb-5 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-pitwall-border">
         <div>
-          <div className="flex items-center gap-2">
-            <Radar className="w-5 h-5 text-[#e10600]" />
-            <h2 className="text-base font-bold text-white tracking-wide uppercase font-f1">
-              Vehicle Dynamics & Performance Radar
-            </h2>
-          </div>
-          <p className="text-xs text-[#8f96a8]">
-            Multi-dimensional telemetry breakdown comparing aero efficiency, braking & traction
+          <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-pitwall-textBright">
+            Vehicle Dynamics & Telemetry Profiling
+          </h2>
+          <p className="text-xs text-pitwall-textMuted font-mono">
+            Direct Engineering Comparison • Aerodynamic Efficiency, Traction & Braking
           </p>
         </div>
 
         {/* Legend */}
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: c1Color }} />
-            <span className="text-white font-bold">{driver1?.name_acronym}</span>
+            <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c1Color }} aria-hidden="true" />
+            <span className="font-bold text-white">{driver1?.name_acronym}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: c2Color }} />
-            <span className="text-white font-bold">{driver2?.name_acronym}</span>
+            <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c2Color }} aria-hidden="true" />
+            <span className="font-bold text-white">{driver2?.name_acronym}</span>
           </div>
         </div>
       </div>
 
-      {/* COMPARATIVE BARS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {scores.map((s, idx) => {
-          const delta = s.c1 - s.c2;
-          const winner = delta > 0 ? driver1?.name_acronym : delta < 0 ? driver2?.name_acronym : 'Tied';
-          const winnerColor = delta > 0 ? c1Color : delta < 0 ? c2Color : '#ffffff';
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+        {metrics.map((m, idx) => {
+          const c1Ahead = m.diff > 0;
+          const c2Ahead = m.diff < 0;
 
           return (
             <div
               key={idx}
-              className="bg-[#161925] border border-[#24293a] rounded-lg p-3.5 flex flex-col justify-between"
+              className="bg-pitwall-subpanel border border-pitwall-border rounded p-3"
             >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-white font-mono">{s.category}</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-pitwall-textBright">{m.category}</span>
                 <span
-                  className="text-[10px] font-mono px-2 py-0.5 rounded font-black"
-                  style={{ color: winnerColor, backgroundColor: `${winnerColor}20` }}
+                  className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                    c1Ahead
+                      ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-500/30'
+                      : c2Ahead
+                      ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30'
+                      : 'text-pitwall-textMuted bg-pitwall-bg'
+                  }`}
                 >
-                  {winner} Advantage
+                  {c1Ahead ? `${driver1?.name_acronym} +${Math.abs(m.diff)} ${m.unit}` : c2Ahead ? `${driver2?.name_acronym} +${Math.abs(m.diff)} ${m.unit}` : 'Parity'}
                 </span>
               </div>
-              <p className="text-[11px] text-[#71788d] mb-3">{s.description}</p>
+              <p className="text-[11px] text-pitwall-textMuted mb-2.5">{m.description}</p>
 
-              {/* Bar Comparison */}
-              <div className="space-y-2">
-                {/* Car 1 Bar */}
+              {/* Progress Bars */}
+              <div className="space-y-1.5">
+                {/* Car 1 */}
                 <div className="flex items-center gap-2">
-                  <span className="w-8 text-[11px] font-mono font-bold text-[#8f96a8]">
+                  <span className="w-9 font-bold text-[11px]" style={{ color: c1Color }}>
                     {driver1?.name_acronym}
                   </span>
-                  <div className="flex-1 h-2.5 bg-[#0e1017] rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-pitwall-bg rounded-xs overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${s.c1}%`, backgroundColor: c1Color }}
+                      className="h-full rounded-xs transition-all duration-200"
+                      style={{ width: `${m.c1Pct}%`, backgroundColor: c1Color }}
                     />
                   </div>
-                  <span className="w-8 text-right text-[11px] font-mono font-bold text-white">
-                    {s.c1}
+                  <span className="w-16 text-right font-bold text-white tabular-nums text-[11px]">
+                    {m.c1Val}
                   </span>
                 </div>
 
-                {/* Car 2 Bar */}
+                {/* Car 2 */}
                 <div className="flex items-center gap-2">
-                  <span className="w-8 text-[11px] font-mono font-bold text-[#8f96a8]">
+                  <span className="w-9 font-bold text-[11px]" style={{ color: c2Color }}>
                     {driver2?.name_acronym}
                   </span>
-                  <div className="flex-1 h-2.5 bg-[#0e1017] rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-pitwall-bg rounded-xs overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${s.c2}%`, backgroundColor: c2Color }}
+                      className="h-full rounded-xs transition-all duration-200"
+                      style={{ width: `${m.c2Pct}%`, backgroundColor: c2Color }}
                     />
                   </div>
-                  <span className="w-8 text-right text-[11px] font-mono font-bold text-white">
-                    {s.c2}
+                  <span className="w-16 text-right font-bold text-white tabular-nums text-[11px]">
+                    {m.c2Val}
                   </span>
                 </div>
               </div>
@@ -153,47 +177,34 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
         })}
       </div>
 
-      {/* AUTOMATED AI TELEMETRY VERDICT */}
-      <div className="mt-6 pt-5 border-t border-[#1f2331]">
-        <div className="flex items-center gap-2 mb-3">
-          <Flame className="w-4 h-4 text-[#e10600]" />
-          <h3 className="text-xs font-mono font-bold uppercase text-white tracking-wider">
-            Automated Telemetry Insights & Engineering Summary
-          </h3>
-        </div>
-
+      {/* Engineering Sector Summary */}
+      <div className="mt-4 pt-3 border-t border-pitwall-border text-xs font-mono">
+        <h3 className="font-bold text-pitwall-textBright text-xs uppercase mb-2">
+          Telemetry Observation Summary
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-[#171a26] border border-[#262c3e] rounded-lg p-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-white mb-1">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Straight-Line Efficiency</span>
-            </div>
-            <p className="text-[11px] text-[#8f96a8] leading-relaxed">
-              {stats1.topSpeed >= stats2.topSpeed ? driver1?.full_name : driver2?.full_name} produces higher end-of-straight terminal velocity (+{Math.abs(stats1.topSpeed - stats2.topSpeed)} km/h), demonstrating lower aerodynamic drag in high-speed DRS sections.
+          <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
+            <span className="font-bold text-white block mb-1">High-Speed Section</span>
+            <p className="text-[11px] text-pitwall-textSecondary leading-relaxed">
+              {stats1.topSpeed >= stats2.topSpeed ? driver1?.full_name : driver2?.full_name} carries +{Math.abs(stats1.topSpeed - stats2.topSpeed)} km/h terminal velocity, suggesting a lower aerodynamic drag configuration or higher ERS deployment on the primary straight.
             </p>
           </div>
 
-          <div className="bg-[#171a26] border border-[#262c3e] rounded-lg p-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-white mb-1">
-              <Compass className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Apex Speed & Mechanical Grip</span>
-            </div>
-            <p className="text-[11px] text-[#8f96a8] leading-relaxed">
-              {stats1.apexSpeed >= stats2.apexSpeed ? driver1?.name_acronym : driver2?.name_acronym} maintains higher minimum speeds (+{Math.abs(stats1.apexSpeed - stats2.apexSpeed)} km/h) through low-speed apexes, highlighting superior slow-speed turn-in balance.
+          <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
+            <span className="font-bold text-white block mb-1">Apex Balance</span>
+            <p className="text-[11px] text-pitwall-textSecondary leading-relaxed">
+              {stats1.apexSpeed >= stats2.apexSpeed ? driver1?.name_acronym : driver2?.name_acronym} maintains +{Math.abs(stats1.apexSpeed - stats2.apexSpeed)} km/h higher minimum speed through slow corners, pointing to stronger front-end mechanical bite on corner entry.
             </p>
           </div>
 
-          <div className="bg-[#171a26] border border-[#262c3e] rounded-lg p-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-white mb-1">
-              <Award className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Traction & Throttle Commitment</span>
-            </div>
-            <p className="text-[11px] text-[#8f96a8] leading-relaxed">
-              {stats1.timeUnderFullThrottle >= stats2.timeUnderFullThrottle ? driver1?.name_acronym : driver2?.name_acronym} spends {Math.abs(stats1.timeUnderFullThrottle - stats2.timeUnderFullThrottle)}% more time at full throttle, delivering power earlier on corner exits.
+          <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
+            <span className="font-bold text-white block mb-1">Power Application</span>
+            <p className="text-[11px] text-pitwall-textSecondary leading-relaxed">
+              {stats1.timeUnderFullThrottle >= stats2.timeUnderFullThrottle ? driver1?.name_acronym : driver2?.name_acronym} logged {Math.abs(stats1.timeUnderFullThrottle - stats2.timeUnderFullThrottle)}% more time at 100% throttle, gaining time on traction-limited corner exits.
             </p>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

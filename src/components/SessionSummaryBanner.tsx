@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meeting, Session, Weather } from '../types/f1';
-import { CloudRain, Thermometer, Wind, Droplets, CheckCircle } from 'lucide-react';
+import { Thermometer, Wind, Droplets, CloudRain, CheckCircle2 } from 'lucide-react';
 
 interface SessionSummaryBannerProps {
   meeting: Meeting | null;
@@ -20,15 +20,16 @@ export const SessionSummaryBanner: React.FC<SessionSummaryBannerProps> = ({
   const rainfall = weather?.rainfall ?? 0;
 
   return (
-    <div className="bg-[#12141c] border border-[#232735] rounded-xl p-4 mb-6 shadow-md flex flex-wrap items-center justify-between gap-4">
-      {/* Session Title & Circuit Info */}
+    <div className="bg-pitwall-panel border border-pitwall-border rounded-lg p-3 mb-4 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+      {/* Circuit & Session Details */}
       <div className="flex items-center gap-3">
         {meeting?.circuit_image && (
-          <div className="w-12 h-9 rounded bg-[#171a26] border border-[#262c3e] p-1 flex items-center justify-center shrink-0">
+          <div className="w-10 h-7 rounded bg-pitwall-subpanel border border-pitwall-border p-0.5 flex items-center justify-center shrink-0">
             <img
               src={meeting.circuit_image}
-              alt="Track Layout"
-              className="max-w-full max-h-full object-contain filter invert opacity-80"
+              alt=""
+              className="max-w-full max-h-full object-contain filter invert opacity-75"
+              aria-hidden="true"
               onError={(e) => {
                 (e.target as HTMLElement).style.display = 'none';
               }}
@@ -37,61 +38,61 @@ export const SessionSummaryBanner: React.FC<SessionSummaryBannerProps> = ({
         )}
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-extrabold text-base text-white tracking-wide">
+            <h1 className="font-bold text-xs sm:text-sm text-pitwall-textBright leading-tight">
               {meeting?.meeting_name || 'Grand Prix'}
             </h1>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#e10600]/20 text-[#ff4d4d] border border-[#e10600]/30 font-bold uppercase">
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-pitwall-subpanel text-[#e10600] border border-pitwall-border font-bold uppercase">
               {session?.session_name || 'Race'}
             </span>
           </div>
-          <p className="text-xs text-[#8f96a8]">
+          <span className="text-[11px] text-pitwall-textMuted">
             {meeting?.location}, {meeting?.country_name} • {meeting?.circuit_short_name} Circuit
-          </p>
+          </span>
         </div>
       </div>
 
-      {/* Track Environmental Sensors */}
-      <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
-        {/* Track Temp */}
-        <div className="flex items-center gap-1.5 bg-[#171a25] px-2.5 py-1.5 rounded-lg border border-[#24293a]">
-          <Thermometer className="w-3.5 h-3.5 text-rose-400" />
-          <span className="text-[#8f96a8]">Track:</span>
-          <span className="font-bold text-white">{trackTemp.toFixed(1)}°C</span>
+      {/* Atmospheric Telemetry Sensors */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Track Surface Temp */}
+        <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
+          <Thermometer className="w-3.5 h-3.5 text-rose-400" aria-hidden="true" />
+          <span className="text-pitwall-textMuted">Track:</span>
+          <span className="font-bold text-white tabular-nums">{trackTemp.toFixed(1)}°C</span>
         </div>
 
-        {/* Air Temp */}
-        <div className="flex items-center gap-1.5 bg-[#171a25] px-2.5 py-1.5 rounded-lg border border-[#24293a]">
-          <Thermometer className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-[#8f96a8]">Air:</span>
-          <span className="font-bold text-white">{airTemp.toFixed(1)}°C</span>
+        {/* Ambient Air Temp */}
+        <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
+          <Thermometer className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
+          <span className="text-pitwall-textMuted">Air:</span>
+          <span className="font-bold text-white tabular-nums">{airTemp.toFixed(1)}°C</span>
         </div>
 
-        {/* Humidity */}
-        <div className="flex items-center gap-1.5 bg-[#171a25] px-2.5 py-1.5 rounded-lg border border-[#24293a]">
-          <Droplets className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="text-[#8f96a8]">Humidity:</span>
-          <span className="font-bold text-white">{humidity}%</span>
+        {/* Relative Humidity */}
+        <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
+          <Droplets className="w-3.5 h-3.5 text-cyan-400" aria-hidden="true" />
+          <span className="text-pitwall-textMuted">Humidity:</span>
+          <span className="font-bold text-white tabular-nums">{humidity}%</span>
         </div>
 
-        {/* Wind */}
-        <div className="flex items-center gap-1.5 bg-[#171a25] px-2.5 py-1.5 rounded-lg border border-[#24293a]">
-          <Wind className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-[#8f96a8]">Wind:</span>
-          <span className="font-bold text-white">{wind} m/s</span>
+        {/* Wind Speed */}
+        <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
+          <Wind className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
+          <span className="text-pitwall-textMuted">Wind:</span>
+          <span className="font-bold text-white tabular-nums">{wind} m/s</span>
         </div>
 
-        {/* Rain Risk */}
-        <div className="flex items-center gap-1.5 bg-[#171a25] px-2.5 py-1.5 rounded-lg border border-[#24293a]">
-          <CloudRain className={`w-3.5 h-3.5 ${rainfall > 0 ? 'text-blue-400 animate-bounce' : 'text-[#71788d]'}`} />
-          <span className="text-[#8f96a8]">Rain:</span>
+        {/* Precipitation Risk */}
+        <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
+          <CloudRain className={`w-3.5 h-3.5 ${rainfall > 0 ? 'text-blue-400' : 'text-pitwall-textMuted'}`} aria-hidden="true" />
+          <span className="text-pitwall-textMuted">Rain:</span>
           <span className={`font-bold ${rainfall > 0 ? 'text-blue-400' : 'text-white'}`}>
-            {rainfall > 0 ? 'YES' : '0%'}
+            {rainfall > 0 ? 'WET' : '0%'}
           </span>
         </div>
 
-        {/* Track Status */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 font-bold">
-          <CheckCircle className="w-3.5 h-3.5" />
+        {/* FIA Track Status */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 font-bold">
+          <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
           <span>TRACK CLEAR</span>
         </div>
       </div>

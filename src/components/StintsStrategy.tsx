@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Driver, Stint } from '../types/f1';
-import { Disc, TrendingDown } from 'lucide-react';
 
 interface StintsStrategyProps {
   driver1: Driver | null;
@@ -38,7 +37,6 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
     }
   };
 
-  // Filter stints or provide representative simulation
   const d1Stints = stints.filter((s) => s.driver_number === driver1?.driver_number);
   const d2Stints = stints.filter((s) => s.driver_number === driver2?.driver_number);
 
@@ -57,21 +55,24 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
   const s2List = d2Stints.length ? d2Stints : fallbackD2Stints;
   const totalLaps = 53;
 
-  const renderStintBar = (stintsList: Stint[], driverName?: string, driverColor?: string) => {
+  const renderStintBar = (stintsList: Stint[], driver: Driver | null, driverColor: string, channelName: string) => {
     return (
-      <div className="bg-[#171a26] border border-[#262c3e] rounded-xl p-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-3 text-xs font-mono">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: driverColor }} />
-            <span className="font-mono font-bold text-sm text-white">{driverName}</span>
+            <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: driverColor }} aria-hidden="true" />
+            <span className="font-bold text-pitwall-textBright">
+              #{driver?.driver_number} {driver?.full_name}
+            </span>
+            <span className="text-pitwall-textMuted">({channelName})</span>
           </div>
-          <span className="text-xs font-mono text-[#8f96a8]">
-            {stintsList.length} Stint{stintsList.length > 1 ? 's' : ''} ({stintsList.length - 1} Pit Stop{stintsList.length > 2 ? 's' : ''})
+          <span className="text-pitwall-textMuted text-[11px]">
+            {stintsList.length} Stint{stintsList.length > 1 ? 's' : ''} • {Math.max(0, stintsList.length - 1)} Pit Stop{stintsList.length > 2 ? 's' : ''}
           </span>
         </div>
 
-        {/* Visual Stint Bar */}
-        <div className="w-full h-8 bg-[#0b0c12] rounded-lg overflow-hidden flex border border-[#232735]">
+        {/* Visual Lap Stint Progression Bar */}
+        <div className="w-full h-7 bg-pitwall-bg rounded overflow-hidden flex border border-pitwall-border mb-2.5">
           {stintsList.map((stint, idx) => {
             const lapsInStint = Math.max(1, (stint.lap_end || totalLaps) - stint.lap_start + 1);
             const widthPct = (lapsInStint / totalLaps) * 100;
@@ -80,23 +81,24 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
             return (
               <div
                 key={idx}
-                className="h-full relative flex items-center justify-center border-r border-[#0b0c12] transition-all hover:brightness-110"
+                className="h-full relative flex items-center justify-center border-r border-pitwall-bg transition-colors"
                 style={{
                   width: `${widthPct}%`,
-                  backgroundColor: `${tyreCol}30`,
-                  borderBottom: `4px solid ${tyreCol}`,
+                  backgroundColor: `${tyreCol}20`,
+                  borderBottom: `3px solid ${tyreCol}`,
                 }}
                 title={`Stint ${stint.stint_number}: ${stint.compound} (Laps ${stint.lap_start}-${stint.lap_end || totalLaps})`}
               >
                 <div className="flex items-center gap-1">
                   <span
-                    className="w-2.5 h-2.5 rounded-full inline-block shadow-sm"
+                    className="w-2 h-2 rounded-full inline-block"
                     style={{ backgroundColor: tyreCol }}
+                    aria-hidden="true"
                   />
-                  <span className="font-mono font-black text-[11px] text-white">
+                  <span className="font-bold text-[11px] text-white">
                     {stint.compound?.[0]}
                   </span>
-                  <span className="text-[10px] font-mono text-[#8f96a8] hidden sm:inline">
+                  <span className="text-[10px] text-pitwall-textMuted hidden sm:inline tabular-nums">
                     ({lapsInStint}L)
                   </span>
                 </div>
@@ -105,8 +107,8 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
           })}
         </div>
 
-        {/* Stint Breakdown Badges */}
-        <div className="mt-3 flex flex-wrap gap-2">
+        {/* Stint Chips */}
+        <div className="flex flex-wrap gap-2 text-[11px]">
           {stintsList.map((stint, idx) => {
             const lapsInStint = Math.max(1, (stint.lap_end || totalLaps) - stint.lap_start + 1);
             const tyreCol = getTyreColor(stint.compound);
@@ -114,14 +116,16 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
             return (
               <div
                 key={idx}
-                className="bg-[#0f1118] px-2.5 py-1 rounded border border-[#202534] text-[11px] font-mono flex items-center gap-1.5"
+                className="bg-pitwall-panel px-2 py-0.5 rounded border border-pitwall-border flex items-center gap-1.5"
               >
-                <span className="text-[#71788d]">Stint {stint.stint_number}:</span>
+                <span className="text-pitwall-textMuted">Stint {stint.stint_number}:</span>
                 <span className="font-bold text-white flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tyreCol }} />
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tyreCol }} aria-hidden="true" />
                   {stint.compound}
                 </span>
-                <span className="text-[#8f96a8]">({lapsInStint} laps)</span>
+                <span className="text-pitwall-textSecondary tabular-nums">
+                  (L{stint.lap_start}–{stint.lap_end || totalLaps}, {lapsInStint} laps)
+                </span>
               </div>
             );
           })}
@@ -131,59 +135,66 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
   };
 
   return (
-    <div className="bg-[#12141c] border border-[#232735] rounded-xl p-5 shadow-2xl mb-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 mb-4 border-b border-[#1f2331]">
+    <section aria-label="Tyre Strategy and Degradation Analysis" className="bg-pitwall-panel border border-pitwall-border rounded-lg p-4 mb-5 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-pitwall-border">
         <div>
-          <div className="flex items-center gap-2">
-            <Disc className="w-5 h-5 text-[#e10600]" />
-            <h2 className="text-base font-bold text-white tracking-wide uppercase font-f1">
-              Tyre Compounds & Pit Stop Strategy
-            </h2>
-          </div>
-          <p className="text-xs text-[#8f96a8]">
-            Head-to-head stint lengths, tyre compound progression & pit windows
+          <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-pitwall-textBright">
+            Tyre Strategy & Pit Window Analysis
+          </h2>
+          <p className="text-xs text-pitwall-textMuted font-mono">
+            Stint Distribution • Compound Lifecycle • Degradation Trajectory
           </p>
         </div>
 
         {/* Compound Legend */}
         <div className="flex items-center gap-3 text-xs font-mono">
           <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#e10600]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#e10600]" aria-hidden="true" />
             <span className="text-white">Soft</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ffd100]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ffd100]" aria-hidden="true" />
             <span className="text-white">Medium</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-white" />
+            <span className="w-2.5 h-2.5 rounded-full bg-white" aria-hidden="true" />
             <span className="text-white">Hard</span>
           </div>
         </div>
       </div>
 
-      {/* STINT BARS COMPARISON */}
-      <div className="space-y-4">
-        {renderStintBar(s1List, driver1?.full_name || 'Car 1', c1Color)}
-        {renderStintBar(s2List, driver2?.full_name || 'Car 2', c2Color)}
+      {/* Stint Bars */}
+      <div className="space-y-3">
+        {renderStintBar(s1List, driver1, c1Color, 'Channel 1 Reference')}
+        {renderStintBar(s2List, driver2, c2Color, 'Channel 2 Comparison')}
       </div>
 
-      {/* TYRE DEGRADATION & STRATEGY INSIGHT */}
-      <div className="mt-5 p-4 rounded-xl bg-[#151824] border border-[#232838] flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono">
-        <div className="flex items-center gap-3">
-          <TrendingDown className="w-5 h-5 text-amber-400 shrink-0" />
-          <div>
-            <div className="font-bold text-white">Estimated Tyre Degradation Slope</div>
-            <div className="text-[11px] text-[#8f96a8]">
-              Soft: ~0.082s / lap • Medium: ~0.048s / lap • Hard: ~0.025s / lap
-            </div>
-          </div>
+      {/* Degradation Matrix */}
+      <div className="mt-4 pt-3 border-t border-pitwall-border grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
+        <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
+          <span className="text-pitwall-textMuted block text-[10px] uppercase">Soft Compound (C4/C5)</span>
+          <span className="font-bold text-white text-sm block mt-0.5">~0.082s / lap drop-off</span>
+          <span className="text-[11px] text-pitwall-textSecondary mt-1 block">
+            High initial bite with thermal cliff after 15-18 laps of sustained push.
+          </span>
         </div>
 
-        <div className="text-[#8f96a8] bg-[#0c0e14] px-3 py-1.5 rounded-lg border border-[#202534]">
-          Optimal Pit Window: <span className="text-emerald-400 font-bold">Laps 22 - 27</span>
+        <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
+          <span className="text-pitwall-textMuted block text-[10px] uppercase">Medium Compound (C3)</span>
+          <span className="font-bold text-white text-sm block mt-0.5">~0.048s / lap drop-off</span>
+          <span className="text-[11px] text-pitwall-textSecondary mt-1 block">
+            Primary race tyre. Consistent delta through 24-28 laps before wear inflection.
+          </span>
+        </div>
+
+        <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
+          <span className="text-pitwall-textMuted block text-[10px] uppercase">Hard Compound (C1/C2)</span>
+          <span className="font-bold text-white text-sm block mt-0.5">~0.024s / lap drop-off</span>
+          <span className="text-[11px] text-pitwall-textSecondary mt-1 block">
+            Lowest degradation gradient with 35+ lap lifespan under green-flag running.
+          </span>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

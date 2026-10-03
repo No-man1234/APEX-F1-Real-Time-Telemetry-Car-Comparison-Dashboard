@@ -8,16 +8,23 @@ export default {
   theme: {
     extend: {
       colors: {
-        f1: {
-          red: '#e10600',
-          darkRed: '#b00400',
-          black: '#0d0e12',
-          card: '#15171e',
-          cardBorder: '#232733',
-          cardHover: '#1c1f2a',
-          accent: '#ff1801',
-          gold: '#e69a0a',
-          cyan: '#00d2be',
+        pitwall: {
+          bg: '#0d0f15',
+          panel: '#141722',
+          subpanel: '#191d2b',
+          card: '#1a1e2d',
+          border: '#252a3b',
+          borderLight: '#32394f',
+          textMuted: '#6f778c',
+          textSecondary: '#9ca4ba',
+          textBright: '#f3f5f9',
+        },
+        fia: {
+          purple: '#b142f5', // Overall session fastest
+          green: '#00d26a',  // Driver personal best
+          yellow: '#ffd100', // Slower or caution
+          red: '#e10600',    // Red flag / brake
+          blue: '#1e88e5',   // Blue flag
         },
         tyre: {
           soft: '#e10600',
@@ -28,18 +35,9 @@ export default {
         }
       },
       fontFamily: {
-        f1: ['Titillium Web', 'sans-serif'],
-        mono: ['JetBrains Mono', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        f1: ['"Titillium Web"', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
-      boxShadow: {
-        'glow-red': '0 0 20px rgba(225, 6, 0, 0.4)',
-        'glow-cyan': '0 0 20px rgba(0, 210, 190, 0.4)',
-        'glow-orange': '0 0 20px rgba(255, 135, 0, 0.4)',
-      },
-      animation: {
-        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'spin-slow': 'spin 3s linear infinite',
-      }
     },
   },
   plugins: [],

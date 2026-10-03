@@ -4,58 +4,49 @@
 
 @layer base {
   body {
-    background-color: #0b0c10;
-    color: #e0e2ec;
-    font-family: 'Titillium Web', sans-serif;
+    background-color: #0d0f15;
+    color: #e2e6f0;
+    font-family: 'Titillium Web', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Monospace figures across telemetry and timing numbers */
+  .font-mono, .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* Custom Scrollbar for F1 sleek telemetry look */
+/* Crisp Pit-Wall Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f1118;
+  background: #0d0f15;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2b3042;
-  border-radius: 3px;
+  background: #252a3b;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #e10600;
+  background: #3e465e;
 }
 
-/* Carbon fiber background texture */
-.carbon-bg {
-  background: 
-    linear-gradient(27deg, #12141c 5px, transparent 5px) 0 5px,
-    linear-gradient(207deg, #12141c 5px, transparent 5px) 10px 0px,
-    linear-gradient(27deg, #181b26 5px, transparent 5px) 0px 10px,
-    linear-gradient(207deg, #181b26 5px, transparent 5px) 10px 5px,
-    linear-gradient(90deg, #10121a 10px, transparent 10px),
-    linear-gradient(#151722 25%, #0f1017 25%, #0f1017 50%, transparent 50%, transparent 75%, #181b26 75%, #181b26);
-  background-color: #0c0e14;
-  background-size: 20px 20px;
+/* Focus outline for accessibility */
+:focus-visible {
+  outline: 2px solid #e10600;
+  outline-offset: 1px;
 }
 
-/* F1 Red racing slash */
-.f1-slash {
-  clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 100%, 15px 100%);
-}
-
-.f1-card-angle {
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
-}
-
-/* Glowing text */
-.text-glow-red {
-  text-shadow: 0 0 12px rgba(225, 6, 0, 0.75);
-}
-
-.text-glow-cyan {
-  text-shadow: 0 0 12px rgba(0, 210, 190, 0.75);
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
