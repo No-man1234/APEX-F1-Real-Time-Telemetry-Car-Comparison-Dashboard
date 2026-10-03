@@ -22,20 +22,20 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
   const c1Color = formatColor(driver1?.team_colour || '3671C6');
   const c2Color = formatColor(driver2?.team_colour || 'FF8000');
 
-  const getTyreColor = (compound: string) => {
+  const getTyreDetails = (compound: string) => {
     switch (compound?.toUpperCase()) {
       case 'SOFT':
-        return '#e10600';
+        return { color: '#e10600', dotClass: 'bg-[#e10600]' };
       case 'MEDIUM':
-        return '#ffd100';
+        return { color: '#ffd100', dotClass: 'bg-[#ffd100]' };
       case 'HARD':
-        return '#ffffff';
+        return { color: '#94a3b8', dotClass: 'bg-white border border-slate-400 dark:border-slate-500 shadow-2xs' };
       case 'INTERMEDIATE':
-        return '#39b54a';
+        return { color: '#16a34a', dotClass: 'bg-[#16a34a]' };
       case 'WET':
-        return '#0072ce';
+        return { color: '#0284c7', dotClass: 'bg-[#0284c7]' };
       default:
-        return '#ffd100';
+        return { color: '#ffd100', dotClass: 'bg-[#ffd100]' };
     }
   };
 
@@ -78,7 +78,7 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
           {stintsList.map((stint, idx) => {
             const lapsInStint = Math.max(1, (stint.lap_end || totalLaps) - stint.lap_start + 1);
             const widthPct = (lapsInStint / totalLaps) * 100;
-            const tyreCol = getTyreColor(stint.compound);
+            const tyreInfo = getTyreDetails(stint.compound);
 
             return (
               <div
@@ -86,18 +86,17 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
                 className="h-full relative flex items-center justify-center border-r border-pitwall-bg transition-colors"
                 style={{
                   width: `${widthPct}%`,
-                  backgroundColor: `${tyreCol}20`,
-                  borderBottom: `3px solid ${tyreCol}`,
+                  backgroundColor: stint.compound?.toUpperCase() === 'HARD' ? 'var(--pitwall-card)' : `${tyreInfo.color}25`,
+                  borderBottom: `3px solid ${tyreInfo.color}`,
                 }}
                 title={`Stint ${stint.stint_number}: ${stint.compound} (Laps ${stint.lap_start}-${stint.lap_end || totalLaps})`}
               >
                 <div className="flex items-center gap-1">
                   <span
-                    className="w-2 h-2 rounded-full inline-block"
-                    style={{ backgroundColor: tyreCol }}
+                    className={`w-2 h-2 rounded-full inline-block ${tyreInfo.dotClass}`}
                     aria-hidden="true"
                   />
-                  <span className="font-bold text-[11px] text-white">
+                  <span className="font-bold text-[11px] text-pitwall-textBright">
                     {stint.compound?.[0]}
                   </span>
                   <span className="text-[10px] text-pitwall-textMuted hidden sm:inline tabular-nums">
@@ -113,7 +112,7 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
         <div className="flex flex-wrap gap-2 text-[11px]">
           {stintsList.map((stint, idx) => {
             const lapsInStint = Math.max(1, (stint.lap_end || totalLaps) - stint.lap_start + 1);
-            const tyreCol = getTyreColor(stint.compound);
+            const tyreInfo = getTyreDetails(stint.compound);
 
             return (
               <div
@@ -122,7 +121,7 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
               >
                 <span className="text-pitwall-textMuted">Stint {stint.stint_number}:</span>
                 <span className="font-bold text-pitwall-textBright flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tyreCol }} aria-hidden="true" />
+                  <span className={`w-2 h-2 rounded-full inline-block ${tyreInfo.dotClass}`} aria-hidden="true" />
                   {stint.compound}
                 </span>
                 <span className="text-pitwall-textSecondary tabular-nums">

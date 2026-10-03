@@ -255,7 +255,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
           <path
             d={pathString}
             fill="none"
-            stroke={isDark ? '#1a1e2c' : '#d8dfec'}
+            stroke={isDark ? '#1a1e2d' : '#cbd5e1'}
             strokeWidth="12"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -272,11 +272,11 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
             opacity="0.9"
           />
 
-          {/* Sector 2 (Cyan / Blue) */}
+          {/* Sector 2 (Cyan in dark / Blue in light for high contrast) */}
           <path
             d={s2Path}
             fill="none"
-            stroke="#06b6d4"
+            stroke={isDark ? '#06b6d4' : '#0284c7'}
             strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -287,7 +287,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
           <path
             d={s3Path}
             fill="none"
-            stroke="#a855f7"
+            stroke={isDark ? '#a855f7' : '#7c3aed'}
             strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -297,7 +297,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
           {/* Start / Finish Line Marker */}
           {startPos && (
             <g transform={`translate(${startPos.x}, ${startPos.y})`}>
-              <circle r="4" fill="#ffffff" stroke="#e10600" strokeWidth="2" />
+              <circle r="4" fill={isDark ? '#ffffff' : '#0f172a'} stroke="#e10600" strokeWidth="2" />
             </g>
           )}
 
@@ -318,7 +318,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
               <text
                 y="-14"
                 textAnchor="middle"
-                fill={isDark ? '#ffffff' : '#0c101c'}
+                fill={isDark ? '#ffffff' : '#0f172a'}
                 fontSize="8.5"
                 fontFamily="monospace"
                 fontWeight="bold"
@@ -346,7 +346,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
               <text
                 y="-14"
                 textAnchor="middle"
-                fill={isDark ? '#ffffff' : '#0c101c'}
+                fill={isDark ? '#ffffff' : '#0f172a'}
                 fontSize="9"
                 fontFamily="monospace"
                 fontWeight="bold"
@@ -365,11 +365,11 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
             <span className="text-pitwall-textMuted">Sector 1</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-xs bg-[#06b6d4]" />
+            <span className="w-2 h-2 rounded-xs" style={{ backgroundColor: isDark ? '#06b6d4' : '#0284c7' }} />
             <span className="text-pitwall-textMuted">Sector 2</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-xs bg-[#a855f7]" />
+            <span className="w-2 h-2 rounded-xs" style={{ backgroundColor: isDark ? '#a855f7' : '#7c3aed' }} />
             <span className="text-pitwall-textMuted">Sector 3</span>
           </div>
           <div className="border-l border-pitwall-border pl-2 text-pitwall-textBright font-bold">

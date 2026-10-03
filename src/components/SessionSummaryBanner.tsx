@@ -28,7 +28,7 @@ export const SessionSummaryBanner: React.FC<SessionSummaryBannerProps> = ({
             <img
               src={meeting.circuit_image}
               alt=""
-              className="max-w-full max-h-full object-contain filter invert opacity-75"
+              className="max-w-full max-h-full object-contain dark:invert opacity-80 dark:opacity-75"
               aria-hidden="true"
               onError={(e) => {
                 (e.target as HTMLElement).style.display = 'none';
@@ -55,37 +55,37 @@ export const SessionSummaryBanner: React.FC<SessionSummaryBannerProps> = ({
       <div className="flex flex-wrap items-center gap-3">
         {/* Track Surface Temp */}
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
-          <Thermometer className="w-3.5 h-3.5 text-rose-400" aria-hidden="true" />
+          <Thermometer className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" aria-hidden="true" />
           <span className="text-pitwall-textMuted">Track:</span>
           <span className="font-bold text-pitwall-textBright tabular-nums">{trackTemp.toFixed(1)}°C</span>
         </div>
 
         {/* Ambient Air Temp */}
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
-          <Thermometer className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
+          <Thermometer className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" aria-hidden="true" />
           <span className="text-pitwall-textMuted">Air:</span>
           <span className="font-bold text-pitwall-textBright tabular-nums">{airTemp.toFixed(1)}°C</span>
         </div>
 
         {/* Relative Humidity */}
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
-          <Droplets className="w-3.5 h-3.5 text-cyan-400" aria-hidden="true" />
+          <Droplets className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" aria-hidden="true" />
           <span className="text-pitwall-textMuted">Humidity:</span>
           <span className="font-bold text-pitwall-textBright tabular-nums">{humidity}%</span>
         </div>
 
         {/* Wind Speed */}
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
-          <Wind className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
+          <Wind className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" aria-hidden="true" />
           <span className="text-pitwall-textMuted">Wind:</span>
           <span className="font-bold text-pitwall-textBright tabular-nums">{wind} m/s</span>
         </div>
 
         {/* Precipitation Risk */}
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
-          <CloudRain className={`w-3.5 h-3.5 ${rainfall > 0 ? 'text-blue-400' : 'text-pitwall-textMuted'}`} aria-hidden="true" />
+          <CloudRain className={`w-3.5 h-3.5 ${rainfall > 0 ? 'text-blue-500 dark:text-blue-400' : 'text-pitwall-textMuted'}`} aria-hidden="true" />
           <span className="text-pitwall-textMuted">Rain:</span>
-          <span className={`font-bold ${rainfall > 0 ? 'text-blue-500' : 'text-pitwall-textBright'}`}>
+          <span className={`font-bold ${rainfall > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-pitwall-textBright'}`}>
             {rainfall > 0 ? 'WET' : '0%'}
           </span>
         </div>

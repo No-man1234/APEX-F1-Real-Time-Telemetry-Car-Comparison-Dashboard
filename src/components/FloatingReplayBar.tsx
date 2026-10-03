@@ -124,19 +124,19 @@ export const FloatingReplayBar: React.FC<FloatingReplayBarProps> = ({
               <span className="font-extrabold text-pitwall-textBright tabular-nums text-xs sm:text-sm">
                 {c1Speed} <span className="text-[10px] text-pitwall-textMuted font-normal">KM/H</span>
               </span>
-              <span className="text-[11px] font-bold text-amber-400">
+              <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
                 G{c1Gear > 0 ? c1Gear : 'N'}
               </span>
             </div>
 
             {/* Mini Throttle & Brake Bars */}
             <div className="hidden sm:flex items-center gap-1.5 bg-pitwall-bg px-2 py-0.5 rounded border border-pitwall-border">
-              <span className="text-[10px] text-emerald-400 font-bold">T:{c1Throttle}%</span>
-              <div className="w-8 h-1.5 bg-pitwall-panel rounded-xs overflow-hidden">
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">T:{c1Throttle}%</span>
+              <div className="w-8 h-1.5 bg-pitwall-panel border border-pitwall-border/60 rounded-xs overflow-hidden">
                 <div className="h-full bg-emerald-500" style={{ width: `${c1Throttle}%` }} />
               </div>
-              <span className="text-[10px] text-rose-400 font-bold ml-1">B:{c1Brake}%</span>
-              <div className="w-8 h-1.5 bg-pitwall-panel rounded-xs overflow-hidden">
+              <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold ml-1">B:{c1Brake}%</span>
+              <div className="w-8 h-1.5 bg-pitwall-panel border border-pitwall-border/60 rounded-xs overflow-hidden">
                 <div className="h-full bg-rose-500" style={{ width: `${c1Brake}%` }} />
               </div>
             </div>
@@ -145,7 +145,7 @@ export const FloatingReplayBar: React.FC<FloatingReplayBarProps> = ({
             <span
               className={`text-[10px] font-bold px-1.5 py-0.2 rounded border hidden lg:inline ${
                 drsActive
-                  ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/40'
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500/40'
                   : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border'
               }`}
             >
@@ -164,7 +164,7 @@ export const FloatingReplayBar: React.FC<FloatingReplayBarProps> = ({
               {currentPoint && (
                 <span
                   className={`text-[11px] font-bold tabular-nums ${
-                    currentPoint.timeDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    currentPoint.timeDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                   }`}
                 >
                   Δ {currentPoint.timeDelta >= 0 ? `+${currentPoint.timeDelta.toFixed(3)}s` : `${currentPoint.timeDelta.toFixed(3)}s`}

@@ -144,7 +144,7 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
               <div className="flex items-center gap-1.5 border-l border-pitwall-border pl-3">
                 <span className="font-bold" style={{ color: c2Color }}>{driver2.name_acronym}:</span>
                 <span className="font-bold text-pitwall-textBright tabular-nums">{currentPoint.c2Speed} km/h</span>
-                <span className={`text-[11px] font-bold tabular-nums ${currentPoint.speedDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <span className={`text-[11px] font-bold tabular-nums ${currentPoint.speedDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   (Δ {currentPoint.speedDelta >= 0 ? `+${currentPoint.speedDelta}` : currentPoint.speedDelta} km/h)
                 </span>
               </div>
@@ -170,10 +170,10 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
                       c1Ahead
-                        ? 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/30'
+                        ? 'text-emerald-700 bg-emerald-50 border border-emerald-300 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/30'
                         : c2Ahead
-                        ? 'text-cyan-500 bg-cyan-500/10 border border-cyan-500/30'
-                        : 'text-pitwall-textMuted bg-pitwall-bg'
+                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-300 dark:text-cyan-400 dark:bg-cyan-500/10 dark:border-cyan-500/30'
+                        : 'text-pitwall-textMuted bg-pitwall-bg border border-pitwall-border'
                     }`}
                   >
                     {c1Ahead ? `${driver1?.name_acronym} +${Math.abs(m.diff)} ${m.unit}` : c2Ahead ? `${driver2?.name_acronym} +${Math.abs(m.diff)} ${m.unit}` : 'Parity'}

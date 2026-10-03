@@ -69,7 +69,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
                 isShiftWindow && i >= 10 ? 'animate-pulse' : ''
               }`}
               style={{
-                backgroundColor: isActive ? ledColor : 'var(--pitwall-panel)',
+                backgroundColor: isActive ? ledColor : 'var(--pitwall-subpanel)',
                 border: `1px solid ${isActive ? ledColor : 'var(--pitwall-border)'}`,
               }}
               aria-hidden="true"
@@ -100,7 +100,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
         <div className="flex items-center justify-between pb-2 mb-2 border-b border-pitwall-border">
           <div className="flex items-center gap-2">
             <span
-              className="px-1.5 py-0.5 rounded text-xs font-mono font-bold text-white"
+              className="px-1.5 py-0.5 rounded text-xs font-mono font-bold text-white shadow-xs"
               style={{ backgroundColor: color }}
             >
               #{driver?.driver_number || 1}
@@ -119,7 +119,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
           <div
             className={`px-2.5 py-0.5 rounded text-[11px] font-mono font-bold border ${
               drsActive
-                ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/50'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500/50'
                 : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border'
             }`}
           >
@@ -153,7 +153,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
           {/* Large Gear Character */}
           <div className="bg-pitwall-panel border border-pitwall-border/80 rounded p-2 flex flex-col justify-center">
             <span className="text-[10px] text-pitwall-textMuted block uppercase">GEAR</span>
-            <span className="text-4xl font-black text-amber-400 tabular-nums">
+            <span className="text-4xl font-black text-amber-600 dark:text-amber-400 tabular-nums">
               {gear > 0 ? gear : 'N'}
             </span>
           </div>
@@ -165,7 +165,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
             <span className="text-pitwall-textMuted text-[11px]">LAP DELTA (Δt):</span>
             <span
               className={`font-bold tabular-nums ${
-                delta >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                delta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
               }`}
             >
               {delta >= 0 ? `+${delta.toFixed(3)}s` : `${delta.toFixed(3)}s`}
@@ -178,10 +178,10 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
           {/* Throttle Bar */}
           <div className="bg-pitwall-bg border border-pitwall-border rounded p-2">
             <div className="flex justify-between items-center text-[11px] mb-1">
-              <span className="text-emerald-400 font-bold">THROTTLE</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">THROTTLE</span>
               <span className="text-pitwall-textBright font-bold tabular-nums">{throttle}%</span>
             </div>
-            <div className="w-full h-2.5 bg-pitwall-panel rounded-xs overflow-hidden">
+            <div className="w-full h-2.5 bg-pitwall-panel border border-pitwall-border/60 rounded-xs overflow-hidden">
               <div
                 className="h-full bg-emerald-500 transition-all duration-75"
                 style={{ width: `${throttle}%` }}
@@ -192,10 +192,10 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
           {/* Brake Bar */}
           <div className="bg-pitwall-bg border border-pitwall-border rounded p-2">
             <div className="flex justify-between items-center text-[11px] mb-1">
-              <span className="text-rose-400 font-bold">BRAKE</span>
+              <span className="text-rose-600 dark:text-rose-400 font-bold">BRAKE</span>
               <span className="text-pitwall-textBright font-bold tabular-nums">{brake}%</span>
             </div>
-            <div className="w-full h-2.5 bg-pitwall-panel rounded-xs overflow-hidden">
+            <div className="w-full h-2.5 bg-pitwall-panel border border-pitwall-border/60 rounded-xs overflow-hidden">
               <div
                 className="h-full bg-rose-500 transition-all duration-75"
                 style={{ width: `${brake}%` }}

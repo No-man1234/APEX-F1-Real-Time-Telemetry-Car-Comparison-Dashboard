@@ -147,9 +147,9 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
 
     const isDark = theme === 'dark';
     const canvasBg = isDark ? '#0b0c12' : '#ffffff';
-    const gridColor = isDark ? '#1a1e2b' : '#e2e7f2';
-    const textColor = isDark ? '#6f778c' : '#525b73';
-    const titleColor = isDark ? '#23293a' : '#c8cfdf';
+    const gridColor = isDark ? '#1a1e2b' : '#e2e8f0';
+    const textColor = isDark ? '#7b859e' : '#475569';
+    const titleColor = isDark ? '#2e3549' : '#64748b';
 
     // Clear Background
     ctx.fillStyle = canvasBg;
@@ -586,7 +586,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
                 onClick={() => onChangeSpeed(spd)}
                 className={`font-bold px-1 transition-colors ${
                   playbackSpeed === spd
-                    ? 'text-amber-400 font-extrabold'
+                    ? 'text-amber-600 dark:text-amber-400 font-extrabold'
                     : 'text-pitwall-textMuted hover:text-pitwall-textBright'
                 }`}
                 title={`${spd}x playback pace (${(lapDurationSec / spd).toFixed(1)}s total)`}
@@ -628,7 +628,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
         {isComparisonMode && (
           <div>
             <span className="text-[10px] text-pitwall-textMuted block">VELOCITY DELTA</span>
-            <span className={`font-bold tabular-nums ${(curPoint?.speedDelta || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <span className={`font-bold tabular-nums ${(curPoint?.speedDelta || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
               {(curPoint?.speedDelta || 0) >= 0 ? `+${curPoint?.speedDelta}` : curPoint?.speedDelta} km/h
             </span>
           </div>
@@ -637,7 +637,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
         {isComparisonMode && (
           <div>
             <span className="text-[10px] text-pitwall-textMuted block">TIME DELTA (Δt)</span>
-            <span className={`font-bold tabular-nums ${(curPoint?.timeDelta || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <span className={`font-bold tabular-nums ${(curPoint?.timeDelta || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
               {(curPoint?.timeDelta || 0) >= 0 ? `+${curPoint?.timeDelta.toFixed(3)}s` : `${curPoint?.timeDelta.toFixed(3)}s`}
             </span>
           </div>
@@ -654,7 +654,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
           <span className="text-[10px] text-pitwall-textMuted block">
             {selectedYear >= 2026 ? 'AERO MODE' : 'DRS STATUS'}
           </span>
-          <span className={`font-bold tabular-nums ${(curPoint?.c1Drs || 0) > 0 ? 'text-emerald-400' : 'text-pitwall-textMuted'}`}>
+          <span className={`font-bold tabular-nums ${(curPoint?.c1Drs || 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-pitwall-textMuted'}`}>
             {aeroDetails1.code}
             {isComparisonMode && ` vs ${aeroDetails2.code}`}
           </span>
@@ -670,12 +670,12 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
           onClick={() => setChannels((c) => ({ ...c, speed: !c.speed }))}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
             channels.speed
-              ? 'bg-blue-500/15 text-blue-400 border-blue-500/40'
+              ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/40'
               : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
           }`}
           title="Toggle Speed / Velocity curve"
         >
-          <span className={`w-2 h-2 rounded-xs ${channels.speed ? 'bg-blue-400' : 'bg-gray-500'}`} />
+          <span className={`w-2 h-2 rounded-xs ${channels.speed ? 'bg-blue-600 dark:bg-blue-400' : 'bg-slate-400'}`} />
           <span>Velocity (Speed)</span>
         </button>
 
@@ -683,12 +683,12 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
           onClick={() => setChannels((c) => ({ ...c, throttle: !c.throttle }))}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
             channels.throttle
-              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/40'
               : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
           }`}
           title="Toggle Throttle Input curve"
         >
-          <span className={`w-2 h-2 rounded-xs ${channels.throttle ? 'bg-emerald-400' : 'bg-gray-500'}`} />
+          <span className={`w-2 h-2 rounded-xs ${channels.throttle ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-400'}`} />
           <span>Throttle (%)</span>
         </button>
 
@@ -696,12 +696,12 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
           onClick={() => setChannels((c) => ({ ...c, brake: !c.brake }))}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
             channels.brake
-              ? 'bg-rose-500/15 text-rose-400 border-rose-500/40'
+              ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/40'
               : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
           }`}
           title="Toggle Brake Pressure curve"
         >
-          <span className={`w-2 h-2 rounded-xs ${channels.brake ? 'bg-rose-400' : 'bg-gray-500'}`} />
+          <span className={`w-2 h-2 rounded-xs ${channels.brake ? 'bg-rose-600 dark:bg-rose-400' : 'bg-slate-400'}`} />
           <span>Brake (%)</span>
         </button>
 
@@ -709,12 +709,12 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
           onClick={() => setChannels((c) => ({ ...c, gear: !c.gear }))}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
             channels.gear
-              ? 'bg-amber-500/15 text-amber-400 border-amber-500/40'
+              ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/40'
               : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
           }`}
           title="Toggle Gear Selection curve"
         >
-          <span className={`w-2 h-2 rounded-xs ${channels.gear ? 'bg-amber-400' : 'bg-gray-500'}`} />
+          <span className={`w-2 h-2 rounded-xs ${channels.gear ? 'bg-amber-600 dark:bg-amber-400' : 'bg-slate-400'}`} />
           <span>Gear (1-8)</span>
         </button>
 
@@ -722,12 +722,12 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
           onClick={() => setChannels((c) => ({ ...c, rpm: !c.rpm }))}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
             channels.rpm
-              ? 'bg-purple-500/15 text-purple-400 border-purple-500/40'
+              ? 'bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-500/15 dark:text-purple-400 dark:border-purple-500/40'
               : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
           }`}
           title="Toggle Engine RPM curve"
         >
-          <span className={`w-2 h-2 rounded-xs ${channels.rpm ? 'bg-purple-400' : 'bg-gray-500'}`} />
+          <span className={`w-2 h-2 rounded-xs ${channels.rpm ? 'bg-purple-600 dark:bg-purple-400' : 'bg-slate-400'}`} />
           <span>Engine RPM</span>
         </button>
 
@@ -736,12 +736,12 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
             onClick={() => setChannels((c) => ({ ...c, delta: !c.delta }))}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
               channels.delta
-                ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
+                ? 'bg-cyan-50 text-cyan-700 border-cyan-300 dark:bg-cyan-500/15 dark:text-cyan-400 dark:border-cyan-500/40'
                 : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
             }`}
             title="Toggle Delta Time curve"
           >
-            <span className={`w-2 h-2 rounded-xs ${channels.delta ? 'bg-cyan-400' : 'bg-gray-500'}`} />
+            <span className={`w-2 h-2 rounded-xs ${channels.delta ? 'bg-cyan-600 dark:bg-cyan-400' : 'bg-slate-400'}`} />
             <span>Time Delta (Δt)</span>
           </button>
         )}
@@ -796,7 +796,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
             )}
           </div>
           {isComparisonMode && (
-            <span className="text-[11px] text-emerald-400 mt-1 block">
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 block font-semibold">
               Δ {Math.abs(stats1.topSpeed - stats2.topSpeed)} km/h ({stats1.topSpeed >= stats2.topSpeed ? driver1?.name_acronym : driver2?.name_acronym} higher)
             </span>
           )}
@@ -815,7 +815,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
             )}
           </div>
           {isComparisonMode && (
-            <span className="text-[11px] text-cyan-400 mt-1 block">
+            <span className="text-[11px] text-cyan-600 dark:text-cyan-400 mt-1 block font-semibold">
               Apex delta: {Math.abs(stats1.apexSpeed - stats2.apexSpeed)} km/h
             </span>
           )}
@@ -847,7 +847,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
               <span className="text-pitwall-textMuted">vs</span>
               <span className="text-base font-bold text-pitwall-textBright">{stats2.hardBrakingEvents} zones</span>
             </div>
-            <span className="text-[11px] text-rose-400 mt-1 block">
+            <span className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 block font-semibold">
               Braking Commitment: High (&gt;5G decel)
             </span>
           </div>

@@ -35,15 +35,15 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
       case 'SOFT':
         return { label: 'S', bg: 'bg-[#e10600]', text: 'text-white' };
       case 'MEDIUM':
-        return { label: 'M', bg: 'bg-[#ffd100]', text: 'text-black' };
+        return { label: 'M', bg: 'bg-[#ffd100]', text: 'text-slate-950 font-bold' };
       case 'HARD':
-        return { label: 'H', bg: 'bg-white', text: 'text-black' };
+        return { label: 'H', bg: 'bg-white border border-slate-300 dark:border-slate-600 shadow-2xs', text: 'text-slate-900 font-bold' };
       case 'INTERMEDIATE':
-        return { label: 'I', bg: 'bg-[#39b54a]', text: 'text-white' };
+        return { label: 'I', bg: 'bg-[#16a34a]', text: 'text-white' };
       case 'WET':
-        return { label: 'W', bg: 'bg-[#0072ce]', text: 'text-white' };
+        return { label: 'W', bg: 'bg-[#0284c7]', text: 'text-white' };
       default:
-        return { label: 'M', bg: 'bg-[#ffd100]', text: 'text-black' };
+        return { label: 'M', bg: 'bg-[#ffd100]', text: 'text-slate-950 font-bold' };
     }
   };
 
@@ -227,7 +227,7 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
                 <tr
                   key={row.driver.driver_number}
                   className={`hover:bg-pitwall-subpanel/80 transition-colors ${
-                    isC1 ? 'bg-blue-950/20' : isC2 ? 'bg-amber-950/20' : ''
+                    isC1 ? 'bg-blue-50/80 dark:bg-blue-950/30' : isC2 ? 'bg-amber-50/80 dark:bg-amber-950/30' : ''
                   }`}
                 >
                   {/* Position */}

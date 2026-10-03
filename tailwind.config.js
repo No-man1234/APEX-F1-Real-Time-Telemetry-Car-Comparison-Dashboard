@@ -20,18 +20,18 @@ export default {
           textBright: 'var(--pitwall-text-bright)',
         },
         fia: {
-          purple: '#b142f5', // Overall session fastest
-          green: '#00d26a',  // Driver personal best
-          yellow: '#ffd100', // Slower or caution
-          red: '#e10600',    // Red flag / brake
-          blue: '#1e88e5',   // Blue flag
+          purple: 'var(--fia-purple)', // Overall session fastest
+          green: 'var(--fia-green)',  // Driver personal best
+          yellow: 'var(--fia-yellow)', // Slower or caution
+          red: 'var(--fia-red)',    // Red flag / brake
+          blue: 'var(--fia-blue)',   // Active mode / Straight
         },
         tyre: {
           soft: '#e10600',
           medium: '#ffd100',
           hard: '#ffffff',
-          intermediate: '#39b54a',
-          wet: '#0072ce',
+          intermediate: '#16a34a',
+          wet: '#0284c7',
         }
       },
       fontFamily: {

@@ -232,7 +232,7 @@ export const DriverPicker: React.FC<DriverPickerProps> = ({
               onClick={onToggleComparisonMode}
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded bg-pitwall-panel hover:bg-pitwall-card text-pitwall-textSecondary hover:text-pitwall-textBright border border-pitwall-border transition-colors text-xs font-mono font-semibold"
             >
-              <Plus className="w-4 h-4 text-emerald-400" aria-hidden="true" />
+              <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
               <span>+ Add Comparison Car (Head-to-Head Mode)</span>
             </button>
           </div>

@@ -3,31 +3,47 @@
 @tailwind utilities;
 
 :root {
-  --pitwall-bg: #eef1f6;
+  /* Light Theme (Clean Technical Engineering Slate & Paper) */
+  --pitwall-bg: #f1f4f9;
   --pitwall-panel: #ffffff;
-  --pitwall-subpanel: #f5f7fa;
-  --pitwall-card: #f8fafc;
-  --pitwall-border: #d4dae8;
-  --pitwall-border-light: #bcc5dc;
-  --pitwall-text-muted: #64708a;
-  --pitwall-text-secondary: #3b455c;
-  --pitwall-text-bright: #0c101c;
+  --pitwall-subpanel: #f8fafc;
+  --pitwall-card: #ffffff;
+  --pitwall-border: #e2e8f0;
+  --pitwall-border-light: #cbd5e1;
+  --pitwall-text-muted: #64748b;
+  --pitwall-text-secondary: #334155;
+  --pitwall-text-bright: #0f172a;
   --canvas-bg: #ffffff;
-  --canvas-grid: #e2e7f2;
+  --canvas-grid: #e2e8f0;
+
+  /* FIA Telemetry Status Colors (Calibrated for High Contrast on Light Backgrounds) */
+  --fia-purple: #7c3aed;
+  --fia-green: #047857;
+  --fia-yellow: #b45309;
+  --fia-red: #e10600;
+  --fia-blue: #0284c7;
 }
 
 .dark {
-  --pitwall-bg: #0d0f15;
-  --pitwall-panel: #141722;
-  --pitwall-subpanel: #191d2b;
-  --pitwall-card: #1a1e2d;
-  --pitwall-border: #252a3b;
-  --pitwall-border-light: #32394f;
-  --pitwall-text-muted: #6f778c;
-  --pitwall-text-secondary: #9ca4ba;
-  --pitwall-text-bright: #f3f5f9;
-  --canvas-bg: #0b0c12;
-  --canvas-grid: #1a1e2b;
+  /* Dark Theme (Deep Carbon Pit-Wall Terminal) */
+  --pitwall-bg: #090a0f;
+  --pitwall-panel: #11141d;
+  --pitwall-subpanel: #161a26;
+  --pitwall-card: #1c2130;
+  --pitwall-border: #242a3e;
+  --pitwall-border-light: #333c56;
+  --pitwall-text-muted: #7b859e;
+  --pitwall-text-secondary: #a0abbf;
+  --pitwall-text-bright: #f3f5fa;
+  --canvas-bg: #0b0d14;
+  --canvas-grid: #1a1e2d;
+
+  /* FIA Telemetry Status Colors (Calibrated for High Contrast on Dark Backgrounds) */
+  --fia-purple: #b142f5;
+  --fia-green: #00d26a;
+  --fia-yellow: #ffd100;
+  --fia-red: #e10600;
+  --fia-blue: #38bdf8;
 }
 
 @layer base {

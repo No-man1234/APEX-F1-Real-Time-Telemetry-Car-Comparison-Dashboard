@@ -72,15 +72,15 @@ export const Header: React.FC<HeaderProps> = ({
             aria-label={`Toggle comparison mode. Currently ${isComparisonMode ? 'Dual Car Comparison' : 'Single Car Analysis'}`}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border transition-colors ${
               isComparisonMode
-                ? 'bg-blue-950/30 text-blue-400 border-blue-500/40 hover:bg-blue-900/30'
-                : 'bg-pitwall-subpanel text-pitwall-textSecondary border-pitwall-border hover:text-pitwall-textBright'
+                ? 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-500/40 dark:hover:bg-blue-900/40 font-bold'
+                : 'bg-pitwall-subpanel text-pitwall-textSecondary border-pitwall-border hover:text-pitwall-textBright hover:bg-pitwall-card'
             }`}
             title={isComparisonMode ? 'Switch to Solo Car Analysis' : 'Enable Head-to-Head Comparison'}
           >
             {isComparisonMode ? (
               <>
-                <GitCompare className="w-3.5 h-3.5 text-blue-400" aria-hidden="true" />
-                <span className="font-bold">COMPARISON MODE</span>
+                <GitCompare className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                <span>COMPARISON MODE</span>
               </>
             ) : (
               <>
@@ -94,18 +94,18 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onToggleTheme}
             aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} theme`}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-pitwall-subpanel hover:bg-pitwall-card text-pitwall-textSecondary hover:text-pitwall-textBright border border-pitwall-border transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-pitwall-subpanel hover:bg-pitwall-card text-pitwall-textSecondary hover:text-pitwall-textBright border border-pitwall-border transition-colors cursor-pointer"
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} theme`}
           >
             {theme === 'dark' ? (
               <>
                 <Sun className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
-                <span className="hidden sm:inline">Light</span>
+                <span className="hidden sm:inline font-semibold">Light</span>
               </>
             ) : (
               <>
-                <Moon className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
-                <span className="hidden sm:inline">Dark</span>
+                <Moon className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" />
+                <span className="hidden sm:inline font-semibold">Dark</span>
               </>
             )}
           </button>
@@ -114,15 +114,15 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onToggleLivePolling}
             aria-label={`Toggle live telemetry sync. Currently ${isLivePolling ? 'active' : 'paused'}`}
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded border transition-colors ${
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded border transition-colors cursor-pointer ${
               isLivePolling
-                ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/40 hover:bg-emerald-900/40'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500/40 dark:hover:bg-emerald-900/40'
                 : 'bg-pitwall-subpanel text-pitwall-textMuted border-pitwall-border hover:text-pitwall-textBright'
             }`}
           >
             <span
               className={`w-2 h-2 rounded-full ${
-                isLivePolling ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'
+                isLivePolling ? 'bg-emerald-500 dark:bg-emerald-400 animate-pulse' : 'bg-slate-400'
               }`}
               aria-hidden="true"
             />
