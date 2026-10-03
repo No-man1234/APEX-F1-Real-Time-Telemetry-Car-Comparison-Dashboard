@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { Driver, Meeting } from '../types/f1';
-import { generateMonzaTrackCoordinates } from '../services/sampleData';
+import { generateBahrainTrackCoordinates, generateMonzaTrackCoordinates } from '../services/sampleData';
+import { Play, Pause, RotateCcw } from 'lucide-react';
 
 interface TrackMinimapProps {
   meeting: Meeting | null;
@@ -11,6 +12,13 @@ interface TrackMinimapProps {
   onTrackClick?: (percentage: number) => void;
   isComparisonMode: boolean;
   theme: 'dark' | 'light';
+  isPlaying?: boolean;
+  onTogglePlay?: () => void;
+  onResetReplay?: () => void;
+  playbackSpeed?: number;
+  onChangeSpeed?: (speed: number) => void;
+  currentSpeed?: number;
+  c2Speed?: number;
 }
 
 export const TrackMinimap: React.FC<TrackMinimapProps> = ({
@@ -22,6 +30,13 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
   onTrackClick,
   isComparisonMode,
   theme,
+  isPlaying,
+  onTogglePlay,
+  onResetReplay,
+  playbackSpeed = 1,
+  onChangeSpeed,
+  currentSpeed,
+  c2Speed,
 }) => {
   const formatColor = (hex?: string) => {
     if (!hex) return '#e10600';
@@ -35,11 +50,14 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
     if (locations && locations.length > 20) {
       return locations;
     }
-    return generateMonzaTrackCoordinates();
-  }, [locations]);
+    const mName = (meeting?.meeting_name || '').toLowerCase();
+    const cName = (meeting?.circuit_short_name || '').toLowerCase();
+    const isBahrain = cName.includes('sakhir') || cName.includes('bahrain') || mName.includes('bahrain') || cName.includes('kuala');
+    return isBahrain ? generateBahrainTrackCoordinates() : generateMonzaTrackCoordinates();
+  }, [locations, meeting]);
 
   // Normalize points to SVG coordinate space
-  const { pathString, s1Path, s2Path, s3Path, c1Pos, c2Pos, mappedPoints } = useMemo(() => {
+  const { pathString, s1Path, s2Path, s3Path, c1Pos, c2Pos, mappedPoints, startPos } = useMemo(() => {
     if (!trackPoints.length) {
       return {
         pathString: '',
@@ -49,6 +67,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
         c1Pos: { x: 280, y: 160 },
         c2Pos: { x: 280, y: 160 },
         mappedPoints: [],
+        startPos: { x: 280, y: 160 },
       };
     }
 
@@ -72,9 +91,10 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
     const offsetX = (svgW - (maxX - minX) * scale) / 2;
     const offsetY = (svgH - (maxY - minY) * scale) / 2;
 
+    // Invert Y coordinate so real-world northing maps right-side-up
     const toSvg = (p: { x: number; y: number }) => ({
       x: offsetX + (p.x - minX) * scale,
-      y: offsetY + (p.y - minY) * scale,
+      y: offsetY + (maxY - p.y) * scale,
     });
 
     const mapped = trackPoints.map(toSvg);
@@ -100,6 +120,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
       c1Pos: mapped[idx1] || mapped[0],
       c2Pos: mapped[idx2] || mapped[0],
       mappedPoints: mapped,
+      startPos: mapped[0] || { x: 280, y: 160 },
     };
   }, [trackPoints, progressPercentage]);
 
@@ -127,6 +148,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
   };
 
   const isDark = theme === 'dark';
+  const currentSector = progressPercentage < 33 ? 1 : progressPercentage < 68 ? 2 : 3;
 
   return (
     <section aria-label="Circuit GPS Track & Position Radar" className="bg-pitwall-panel border border-pitwall-border rounded-lg p-4 mb-5 shadow-xs">
@@ -136,30 +158,94 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
             Circuit GPS & Track Radar
           </h2>
           <p className="text-xs text-pitwall-textMuted font-mono">
-            {meeting?.circuit_short_name || 'Autodromo Nazionale Monza'} • Sector Breakpoints & Real-Time Position
+            {meeting?.circuit_short_name || 'Grand Prix Circuit'} • Sector Breakpoints & Real-Time Position
           </p>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-4 text-xs font-mono">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c1Color }} aria-hidden="true" />
-            <span className="font-bold text-pitwall-textBright">{driver1?.name_acronym || 'C1'}</span>
-          </div>
-          {isComparisonMode && (
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c2Color }} aria-hidden="true" />
-              <span className="font-bold text-pitwall-textBright">{driver2?.name_acronym || 'C2'}</span>
+        {/* In-tab Playback Controls & Status */}
+        <div className="flex items-center gap-2 text-xs font-mono">
+          {onTogglePlay && (
+            <div className="inline-flex items-center gap-1 bg-pitwall-subpanel p-0.5 rounded border border-pitwall-border">
+              <button
+                onClick={onTogglePlay}
+                aria-label={isPlaying ? 'Pause circuit replay' : 'Play circuit replay'}
+                className="p-1 rounded bg-[#e10600] text-white hover:bg-[#b00400] transition-colors cursor-pointer"
+                title={isPlaying ? 'Pause replay' : 'Play circuit replay'}
+              >
+                {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              </button>
+              {onResetReplay && (
+                <button
+                  onClick={onResetReplay}
+                  aria-label="Reset position to start line"
+                  className="p-1 rounded text-pitwall-textMuted hover:text-pitwall-textBright transition-colors cursor-pointer"
+                  title="Reset to Start"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           )}
-          <div className="text-pitwall-textMuted hidden sm:inline">
-            Sector: <span className="text-pitwall-textBright font-bold">{progressPercentage < 33 ? '1' : progressPercentage < 68 ? '2' : '3'}</span>
+
+          {/* Speed Multiplier Pills */}
+          {onChangeSpeed && (
+            <div className="inline-flex rounded bg-pitwall-subpanel p-0.5 border border-pitwall-border">
+              {[1, 2, 4].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => onChangeSpeed(s)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                    playbackSpeed === s
+                      ? 'bg-pitwall-border text-pitwall-textBright'
+                      : 'text-pitwall-textMuted hover:text-pitwall-textBright'
+                  }`}
+                >
+                  {s}x
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Sector Jump Buttons */}
+          <div className="inline-flex rounded bg-pitwall-subpanel p-0.5 border border-pitwall-border">
+            {[
+              { label: 'S1', pct: 0 },
+              { label: 'S2', pct: 34 },
+              { label: 'S3', pct: 69 },
+            ].map((s) => (
+              <button
+                key={s.label}
+                onClick={() => onTrackClick && onTrackClick(s.pct)}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase transition-colors cursor-pointer ${
+                  currentSector === Number(s.label[1])
+                    ? 'bg-pitwall-card text-pitwall-textBright'
+                    : 'text-pitwall-textMuted hover:text-pitwall-textBright'
+                }`}
+                title={`Jump to Sector ${s.label[1]}`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-3 ml-1">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c1Color }} aria-hidden="true" />
+              <span className="font-bold text-pitwall-textBright">{driver1?.name_acronym || 'C1'}</span>
+            </div>
+            {isComparisonMode && (
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c2Color }} aria-hidden="true" />
+                <span className="font-bold text-pitwall-textBright">{driver2?.name_acronym || 'C2'}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* SVG Circuit Canvas */}
-      <div className="relative w-full h-[320px] bg-pitwall-bg rounded border border-pitwall-border flex items-center justify-center overflow-hidden cursor-pointer">
+      <div className="relative w-full h-[340px] bg-pitwall-bg rounded border border-pitwall-border flex items-center justify-center overflow-hidden cursor-crosshair">
         <svg
           viewBox="0 0 560 340"
           onClick={handleSvgClick}
@@ -170,56 +256,70 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
             d={pathString}
             fill="none"
             stroke={isDark ? '#1a1e2c' : '#d8dfec'}
-            strokeWidth="10"
+            strokeWidth="12"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
 
-          {/* Sector 1 (Yellow) */}
+          {/* Sector 1 (Amber / Gold) */}
           <path
             d={s1Path}
             fill="none"
-            stroke="#e0a800"
-            strokeWidth="3.5"
+            stroke="#f59e0b"
+            strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity="0.85"
+            opacity="0.9"
           />
 
-          {/* Sector 2 (Cyan) */}
+          {/* Sector 2 (Cyan / Blue) */}
           <path
             d={s2Path}
             fill="none"
-            stroke="#00a0de"
-            strokeWidth="3.5"
+            stroke="#06b6d4"
+            strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity="0.85"
+            opacity="0.9"
           />
 
-          {/* Sector 3 (Magenta) */}
+          {/* Sector 3 (Purple / Violet) */}
           <path
             d={s3Path}
             fill="none"
-            stroke="#b142f5"
-            strokeWidth="3.5"
+            stroke="#a855f7"
+            strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity="0.85"
+            opacity="0.9"
           />
 
-          {/* Start / Finish Line */}
-          <circle cx="280" cy="50" r="3.5" fill="#ffffff" stroke="#e10600" strokeWidth="2" />
+          {/* Start / Finish Line Marker */}
+          {startPos && (
+            <g transform={`translate(${startPos.x}, ${startPos.y})`}>
+              <circle r="4" fill="#ffffff" stroke="#e10600" strokeWidth="2" />
+            </g>
+          )}
 
           {/* Car 2 Marker (Only in comparison mode) */}
           {isComparisonMode && c2Pos && (
             <g transform={`translate(${c2Pos.x}, ${c2Pos.y})`}>
-              <circle r="7" fill={c2Color} stroke="#ffffff" strokeWidth="1.5" />
+              <circle r="8" fill={c2Color} stroke="#ffffff" strokeWidth="2" opacity="0.9" />
+              <rect
+                x="-16"
+                y="-23"
+                width="32"
+                height="13"
+                rx="3"
+                fill={isDark ? '#0b0c12' : '#ffffff'}
+                stroke={c2Color}
+                strokeWidth="1"
+              />
               <text
-                y="-10"
+                y="-14"
                 textAnchor="middle"
                 fill={isDark ? '#ffffff' : '#0c101c'}
-                fontSize="9"
+                fontSize="8.5"
                 fontFamily="monospace"
                 fontWeight="bold"
                 className="select-none"
@@ -232,9 +332,19 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
           {/* Car 1 Marker */}
           {c1Pos && (
             <g transform={`translate(${c1Pos.x}, ${c1Pos.y})`}>
-              <circle r="7.5" fill={c1Color} stroke="#ffffff" strokeWidth="2" />
+              <circle r="8.5" fill={c1Color} stroke="#ffffff" strokeWidth="2" />
+              <rect
+                x="-18"
+                y="-24"
+                width="36"
+                height="14"
+                rx="3"
+                fill={isDark ? '#0b0c12' : '#ffffff'}
+                stroke={c1Color}
+                strokeWidth="1"
+              />
               <text
-                y="-11"
+                y="-14"
                 textAnchor="middle"
                 fill={isDark ? '#ffffff' : '#0c101c'}
                 fontSize="9"
@@ -248,19 +358,24 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
           )}
         </svg>
 
-        {/* Sector Legend Bar */}
-        <div className="absolute bottom-2.5 left-2.5 bg-pitwall-panel/90 backdrop-blur px-3 py-1 rounded border border-pitwall-border text-[11px] font-mono flex items-center gap-3">
+        {/* Sector Legend Bar & Live Position Pill */}
+        <div className="absolute bottom-2.5 left-2.5 bg-pitwall-panel/95 backdrop-blur px-3 py-1.5 rounded-md border border-pitwall-border text-[11px] font-mono flex items-center gap-3 shadow-md">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-xs bg-[#e0a800]" />
-            <span className="text-pitwall-textMuted">Sec 1</span>
+            <span className="w-2 h-2 rounded-xs bg-[#f59e0b]" />
+            <span className="text-pitwall-textMuted">Sector 1</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-xs bg-[#00a0de]" />
-            <span className="text-pitwall-textMuted">Sec 2</span>
+            <span className="w-2 h-2 rounded-xs bg-[#06b6d4]" />
+            <span className="text-pitwall-textMuted">Sector 2</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-xs bg-[#b142f5]" />
-            <span className="text-pitwall-textMuted">Sec 3</span>
+            <span className="w-2 h-2 rounded-xs bg-[#a855f7]" />
+            <span className="text-pitwall-textMuted">Sector 3</span>
+          </div>
+          <div className="border-l border-pitwall-border pl-2 text-pitwall-textBright font-bold">
+            Pos: {progressPercentage}% (Sector {currentSector})
+            {currentSpeed !== undefined && ` • ${driver1?.name_acronym || 'C1'}: ${currentSpeed} km/h`}
+            {isComparisonMode && c2Speed !== undefined && ` • ${driver2?.name_acronym || 'C2'}: ${c2Speed} km/h`}
           </div>
         </div>
       </div>

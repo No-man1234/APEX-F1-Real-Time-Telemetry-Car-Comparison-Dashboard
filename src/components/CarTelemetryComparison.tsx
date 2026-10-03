@@ -14,6 +14,11 @@ interface CarTelemetryComparisonProps {
   selectedYear: number;
   isComparisonMode: boolean;
   theme: 'dark' | 'light';
+  lapDurationSec?: number;
+  isPlaying?: boolean;
+  onTogglePlay?: () => void;
+  playbackSpeed?: number;
+  onChangeSpeed?: (speed: number) => void;
 }
 
 type SectorFilter = 'all' | 's1' | 's2' | 's3';
@@ -29,12 +34,49 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
   selectedYear,
   isComparisonMode,
   theme,
+  lapDurationSec = 90,
+  isPlaying: controlledIsPlaying,
+  onTogglePlay: controlledOnTogglePlay,
+  playbackSpeed: controlledPlaybackSpeed,
+  onChangeSpeed: controlledOnChangeSpeed,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState<number>(2); // Default 2x (~6 seconds full lap)
+
+  // Local fallback playback state
+  const [localIsPlaying, setLocalIsPlaying] = useState<boolean>(false);
+  const [localPlaybackSpeed, setLocalPlaybackSpeed] = useState<number>(1); // Default strictly 1x
+
+  const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : localIsPlaying;
+  const onTogglePlay = controlledOnTogglePlay || (() => setLocalIsPlaying((p) => !p));
+  const playbackSpeed = controlledPlaybackSpeed !== undefined ? controlledPlaybackSpeed : localPlaybackSpeed;
+  const onChangeSpeed = controlledOnChangeSpeed || setLocalPlaybackSpeed;
+
   const [activeSector, setActiveSector] = useState<SectorFilter>('all');
   const [useMph, setUseMph] = useState<boolean>(false);
+
+  // Interactive Checklist to include/exclude telemetry curves
+  const [channels, setChannels] = useState<{
+    speed: boolean;
+    throttle: boolean;
+    brake: boolean;
+    gear: boolean;
+    rpm: boolean;
+    delta: boolean;
+  }>({
+    speed: true,
+    throttle: true,
+    brake: true,
+    gear: false,
+    rpm: false,
+    delta: isComparisonMode,
+  });
+
+  // Sync delta with comparison mode
+  useEffect(() => {
+    if (!isComparisonMode && channels.delta) {
+      setChannels((prev) => ({ ...prev, delta: false }));
+    }
+  }, [isComparisonMode, channels.delta]);
 
   const formatColor = (hex?: string) => {
     if (!hex) return '#e10600';
@@ -61,18 +103,22 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
     return data.slice(start, end + 1);
   }, [data, activeSector, sectorBounds]);
 
-  // Calibrated playback pacing (At 1x: 100ms per point -> 120 points = 12s; At 2x: 50ms -> 6s; At 3x: ~4s)
+  // Calibrated playback pacing: If controlled globally by App, skip local timer to avoid double-speed
   useEffect(() => {
+    if (controlledIsPlaying !== undefined) return;
     if (!isPlaying || !data.length) return;
 
-    // Interval interval in milliseconds based on speed multiplier
-    const stepIntervalMs = Math.round(100 / playbackSpeed);
+    const baseDuration = lapDurationSec > 0 ? lapDurationSec : 90;
+    const stepIntervalMs = Math.max(
+      16,
+      Math.round((baseDuration / data.length) * (1000 / playbackSpeed))
+    );
 
     const interval = setInterval(() => {
       onScrub((prev: number) => {
         const next = prev + 1;
         if (next >= data.length) {
-          setIsPlaying(false);
+          onTogglePlay();
           return 0;
         }
         return next;
@@ -80,9 +126,9 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
     }, stepIntervalMs);
 
     return () => clearInterval(interval);
-  }, [isPlaying, data.length, playbackSpeed, onScrub]);
+  }, [isPlaying, data.length, playbackSpeed, lapDurationSec, onScrub, onTogglePlay]);
 
-  // High-density Canvas drawing with theme awareness and optional Car 2
+  // High-density Canvas drawing with modular tracks based on user checklist
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !visibleData.length) return;
@@ -114,18 +160,46 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
     const padT = 16;
     const padB = 28;
     const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
 
-    // In Solo mode, 2 channels (Speed 60%, Throttle/Brake 40%); in Comparison mode, 3 channels (Speed 50%, Delta 25%, Throttle/Brake 25%)
-    const ch1H = isComparisonMode ? Math.floor((height - padT - padB) * 0.50) : Math.floor((height - padT - padB) * 0.60);
-    const ch2H = isComparisonMode ? Math.floor((height - padT - padB) * 0.22) : 0;
-    const ch3H = isComparisonMode ? Math.floor((height - padT - padB) * 0.22) : Math.floor((height - padT - padB) * 0.35);
-    const gap = isComparisonMode ? Math.floor((height - padT - padB - ch1H - ch2H - ch3H) / 2) : Math.floor(height - padT - padB - ch1H - ch3H);
+    // Determine active tracks
+    type TrackType = 'speed' | 'delta' | 'pedals' | 'gear' | 'rpm';
+    const activeTracks: TrackType[] = [];
 
-    const yCh1 = padT;
-    const yCh2 = isComparisonMode ? yCh1 + ch1H + gap : 0;
-    const yCh3 = isComparisonMode ? yCh2 + ch2H + gap : yCh1 + ch1H + gap;
+    if (channels.speed) activeTracks.push('speed');
+    if (isComparisonMode && channels.delta) activeTracks.push('delta');
+    if (channels.throttle || channels.brake) activeTracks.push('pedals');
+    if (channels.gear) activeTracks.push('gear');
+    if (channels.rpm) activeTracks.push('rpm');
 
-    // X-Axis Grid & Distance Markers
+    // If all unchecked, fall back to speed
+    if (activeTracks.length === 0) activeTracks.push('speed');
+
+    // Calculate layout heights for each active track
+    const gap = 14;
+    const totalGaps = (activeTracks.length - 1) * gap;
+    const netHeight = Math.max(100, plotH - totalGaps);
+
+    const trackWeights: Record<TrackType, number> = {
+      speed: 1.6,
+      delta: 0.9,
+      pedals: 1.1,
+      gear: 0.8,
+      rpm: 1.0,
+    };
+
+    const sumWeights = activeTracks.reduce((acc, t) => acc + trackWeights[t], 0);
+
+    const trackLayouts = new Map<TrackType, { y: number; h: number }>();
+    let currentY = padT;
+
+    activeTracks.forEach((t) => {
+      const h = Math.floor((trackWeights[t] / sumWeights) * netHeight);
+      trackLayouts.set(t, { y: currentY, h });
+      currentY += h + gap;
+    });
+
+    // Draw X-Axis Distance Grid
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     const xTicks = 8;
@@ -145,68 +219,77 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
     }
 
     // ==========================================
-    // CHANNEL 1: SPEED (km/h or mph)
+    // TRACK: SPEED
     // ==========================================
-    ctx.fillStyle = titleColor;
-    ctx.font = '10px "JetBrains Mono", monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(useMph ? 'SPEED (MPH)' : 'SPEED (KM/H)', padL + 6, yCh1 + 14);
+    if (trackLayouts.has('speed')) {
+      const { y: yTrack, h: hTrack } = trackLayouts.get('speed')!;
 
-    const speedMin = useMph ? 40 : 60;
-    const speedMax = useMph ? 225 : 360;
-    const speedTicks = 4;
-    for (let i = 0; i <= speedTicks; i++) {
-      const y = yCh1 + (i / speedTicks) * ch1H;
-      ctx.strokeStyle = gridColor;
+      ctx.fillStyle = titleColor;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(useMph ? 'SPEED (MPH)' : 'SPEED (KM/H)', padL + 6, yTrack + 13);
+
+      const speedMin = useMph ? 40 : 60;
+      const speedMax = useMph ? 225 : 360;
+      const speedTicks = Math.max(2, Math.floor(hTrack / 45));
+
+      for (let i = 0; i <= speedTicks; i++) {
+        const y = yTrack + (i / speedTicks) * hTrack;
+        ctx.strokeStyle = gridColor;
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(width - padR, y);
+        ctx.stroke();
+
+        const val = Math.round(speedMax - (i / speedTicks) * (speedMax - speedMin));
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'right';
+        ctx.fillText(`${val}`, padL - 8, y + 3);
+      }
+
+      // Car 1 Speed Line
       ctx.beginPath();
-      ctx.moveTo(padL, y);
-      ctx.lineTo(width - padR, y);
-      ctx.stroke();
-
-      const val = Math.round(speedMax - (i / speedTicks) * (speedMax - speedMin));
-      ctx.fillStyle = textColor;
-      ctx.textAlign = 'right';
-      ctx.fillText(`${val}`, padL - 8, y + 3);
-    }
-
-    // Car 1 Speed Line
-    ctx.beginPath();
-    ctx.strokeStyle = c1Color;
-    ctx.lineWidth = 2.2;
-    visibleData.forEach((pt, idx) => {
-      const x = padL + (idx / (visibleData.length - 1)) * plotW;
-      const spd = useMph ? pt.c1Speed * 0.621371 : pt.c1Speed;
-      const normY = (spd - speedMin) / (speedMax - speedMin);
-      const y = yCh1 + (1 - Math.max(0, Math.min(1, normY))) * ch1H;
-      if (idx === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-
-    // Car 2 Speed Line (Only in comparison mode)
-    if (isComparisonMode) {
-      ctx.beginPath();
-      ctx.strokeStyle = c2Color;
+      ctx.strokeStyle = c1Color;
       ctx.lineWidth = 2.2;
       visibleData.forEach((pt, idx) => {
         const x = padL + (idx / (visibleData.length - 1)) * plotW;
-        const spd = useMph ? pt.c2Speed * 0.621371 : pt.c2Speed;
+        const spd = useMph ? pt.c1Speed * 0.621371 : pt.c1Speed;
         const normY = (spd - speedMin) / (speedMax - speedMin);
-        const y = yCh1 + (1 - Math.max(0, Math.min(1, normY))) * ch1H;
+        const y = yTrack + (1 - Math.max(0, Math.min(1, normY))) * hTrack;
         if (idx === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       });
       ctx.stroke();
+
+      // Car 2 Speed Line
+      if (isComparisonMode) {
+        ctx.beginPath();
+        ctx.strokeStyle = c2Color;
+        ctx.lineWidth = 2.2;
+        visibleData.forEach((pt, idx) => {
+          const x = padL + (idx / (visibleData.length - 1)) * plotW;
+          const spd = useMph ? pt.c2Speed * 0.621371 : pt.c2Speed;
+          const normY = (spd - speedMin) / (speedMax - speedMin);
+          const y = yTrack + (1 - Math.max(0, Math.min(1, normY))) * hTrack;
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
     }
 
     // ==========================================
-    // CHANNEL 2: TIME DELTA (Only in comparison mode)
+    // TRACK: DELTA TIME (Only in comparison mode)
     // ==========================================
-    if (isComparisonMode) {
-      ctx.fillStyle = titleColor;
-      ctx.fillText('DELTA TIME (Δt SECONDS)', padL + 6, yCh2 + 13);
+    if (trackLayouts.has('delta') && isComparisonMode) {
+      const { y: yTrack, h: hTrack } = trackLayouts.get('delta')!;
 
-      const zeroY = yCh2 + ch2H / 2;
+      ctx.fillStyle = titleColor;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('DELTA TIME (Δt SECONDS)', padL + 6, yTrack + 13);
+
+      const zeroY = yTrack + hTrack / 2;
       ctx.strokeStyle = isDark ? '#2b3246' : '#cbd3e3';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -217,8 +300,8 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
       ctx.fillStyle = textColor;
       ctx.textAlign = 'right';
       ctx.fillText('0.0s', padL - 8, zeroY + 3);
-      ctx.fillText('+0.5s', padL - 8, yCh2 + 10);
-      ctx.fillText('-0.5s', padL - 8, yCh2 + ch2H);
+      ctx.fillText('+0.5s', padL - 8, yTrack + 10);
+      ctx.fillText('-0.5s', padL - 8, yTrack + hTrack);
 
       // Delta Line
       ctx.beginPath();
@@ -228,7 +311,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
         const x = padL + (idx / (visibleData.length - 1)) * plotW;
         const clampedDelta = Math.max(-0.5, Math.min(0.5, pt.timeDelta));
         const normY = (clampedDelta - -0.5) / 1.0;
-        const y = yCh2 + (1 - normY) * ch2H;
+        const y = yTrack + (1 - normY) * hTrack;
         if (idx === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       });
@@ -236,39 +319,113 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
     }
 
     // ==========================================
-    // CHANNEL 3: THROTTLE (%) & BRAKE (%)
+    // TRACK: PEDAL INPUTS (THROTTLE & BRAKE)
     // ==========================================
-    ctx.fillStyle = titleColor;
-    ctx.fillText('THROTTLE & BRAKE INPUTS (%)', padL + 6, yCh3 + 13);
+    if (trackLayouts.has('pedals')) {
+      const { y: yTrack, h: hTrack } = trackLayouts.get('pedals')!;
 
-    ctx.fillStyle = textColor;
-    ctx.textAlign = 'right';
-    ctx.fillText('100%', padL - 8, yCh3 + 10);
-    ctx.fillText('0%', padL - 8, yCh3 + ch3H);
+      ctx.fillStyle = titleColor;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('THROTTLE & BRAKE INPUTS (%)', padL + 6, yTrack + 13);
 
-    // Throttle Line Car 1 (Green)
-    ctx.beginPath();
-    ctx.strokeStyle = '#00d26a';
-    ctx.lineWidth = 1.8;
-    visibleData.forEach((pt, idx) => {
-      const x = padL + (idx / (visibleData.length - 1)) * plotW;
-      const y = yCh3 + (1 - pt.c1Throttle / 100) * ch3H;
-      if (idx === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'right';
+      ctx.fillText('100%', padL - 8, yTrack + 10);
+      ctx.fillText('0%', padL - 8, yTrack + hTrack);
 
-    // Brake Line Car 1 (Red)
-    ctx.beginPath();
-    ctx.strokeStyle = '#e10600';
-    ctx.lineWidth = 2;
-    visibleData.forEach((pt, idx) => {
-      const x = padL + (idx / (visibleData.length - 1)) * plotW;
-      const y = yCh3 + (1 - pt.c1Brake / 100) * ch3H;
-      if (idx === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+      // Throttle Line (Green)
+      if (channels.throttle) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#00d26a';
+        ctx.lineWidth = 1.8;
+        visibleData.forEach((pt, idx) => {
+          const x = padL + (idx / (visibleData.length - 1)) * plotW;
+          const thr = Math.min(100, Math.max(0, pt.c1Throttle));
+          const y = yTrack + (1 - thr / 100) * hTrack;
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      // Brake Line (Red)
+      if (channels.brake) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#e10600';
+        ctx.lineWidth = 2;
+        visibleData.forEach((pt, idx) => {
+          const x = padL + (idx / (visibleData.length - 1)) * plotW;
+          const brk = Math.min(100, Math.max(0, pt.c1Brake));
+          const y = yTrack + (1 - brk / 100) * hTrack;
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+    }
+
+    // ==========================================
+    // TRACK: GEAR (1 - 8)
+    // ==========================================
+    if (trackLayouts.has('gear')) {
+      const { y: yTrack, h: hTrack } = trackLayouts.get('gear')!;
+
+      ctx.fillStyle = titleColor;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('GEAR SELECTION', padL + 6, yTrack + 13);
+
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'right';
+      ctx.fillText('8', padL - 8, yTrack + 10);
+      ctx.fillText('1', padL - 8, yTrack + hTrack);
+
+      // Stepped Gear Line Car 1
+      ctx.beginPath();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      visibleData.forEach((pt, idx) => {
+        const x = padL + (idx / (visibleData.length - 1)) * plotW;
+        const g = Math.max(1, Math.min(8, pt.c1Gear || 1));
+        const normY = (g - 1) / 7;
+        const y = yTrack + (1 - normY) * hTrack;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    // ==========================================
+    // TRACK: ENGINE RPM
+    // ==========================================
+    if (trackLayouts.has('rpm')) {
+      const { y: yTrack, h: hTrack } = trackLayouts.get('rpm')!;
+
+      ctx.fillStyle = titleColor;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('ENGINE RPM (REV LIMIT 12.5K)', padL + 6, yTrack + 13);
+
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'right';
+      ctx.fillText('12.5k', padL - 8, yTrack + 10);
+      ctx.fillText('6.0k', padL - 8, yTrack + hTrack);
+
+      // RPM Line Car 1
+      ctx.beginPath();
+      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 1.8;
+      visibleData.forEach((pt, idx) => {
+        const x = padL + (idx / (visibleData.length - 1)) * plotW;
+        const rpm = Math.max(6000, Math.min(12500, pt.c1Rpm || 10000));
+        const normY = (rpm - 6000) / 6500;
+        const y = yTrack + (1 - normY) * hTrack;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
 
     // ==========================================
     // SYNCHRONIZED VERTICAL CROSSHAIR CURSOR
@@ -298,26 +455,37 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
 
       const pt = data[targetIdx];
       if (pt) {
-        const spd1 = useMph ? pt.c1Speed * 0.621371 : pt.c1Speed;
-        const yDot1 = yCh1 + (1 - (spd1 - speedMin) / (speedMax - speedMin)) * ch1H;
+        if (trackLayouts.has('speed')) {
+          const { y: yTrack, h: hTrack } = trackLayouts.get('speed')!;
+          const spd = useMph ? pt.c1Speed * 0.621371 : pt.c1Speed;
+          const speedMin = useMph ? 40 : 60;
+          const speedMax = useMph ? 225 : 360;
+          const normY = (spd - speedMin) / (speedMax - speedMin);
+          const dotY = yTrack + (1 - Math.max(0, Math.min(1, normY))) * hTrack;
 
-        ctx.fillStyle = c1Color;
-        ctx.beginPath();
-        ctx.arc(cursorX, yDot1, 4.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (isComparisonMode) {
-          const spd2 = useMph ? pt.c2Speed * 0.621371 : pt.c2Speed;
-          const yDot2 = yCh1 + (1 - (spd2 - speedMin) / (speedMax - speedMin)) * ch1H;
-
-          ctx.fillStyle = c2Color;
+          ctx.fillStyle = c1Color;
           ctx.beginPath();
-          ctx.arc(cursorX, yDot2, 4.5, 0, Math.PI * 2);
+          ctx.arc(cursorX, dotY, 4.5, 0, Math.PI * 2);
           ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
         }
       }
     }
-  }, [visibleData, currentPointIndex, c1Color, c2Color, activeSector, sectorBounds, data, useMph, isComparisonMode, theme]);
+  }, [
+    visibleData,
+    currentPointIndex,
+    c1Color,
+    c2Color,
+    activeSector,
+    sectorBounds,
+    data,
+    useMph,
+    isComparisonMode,
+    theme,
+    channels,
+  ]);
 
   // Scrub click handler
   const handleCanvasInteraction = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -392,10 +560,10 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
           {/* Replay Controls */}
           <div className="inline-flex items-center gap-1 bg-pitwall-subpanel p-0.5 rounded border border-pitwall-border">
             <button
-              onClick={() => setIsPlaying(!isPlaying)}
+              onClick={onTogglePlay}
               aria-label={isPlaying ? 'Pause replay' : 'Play telemetry replay'}
               className="p-1 rounded bg-[#e10600] text-white hover:bg-[#b00400] transition-colors"
-              title={isPlaying ? 'Pause' : 'Play Lap Replay'}
+              title={isPlaying ? 'Pause Replay' : 'Play Lap Replay'}
             >
               {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
             </button>
@@ -403,27 +571,25 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
               onClick={() => onScrub(0)}
               aria-label="Reset cursor to lap start"
               className="p-1 rounded text-pitwall-textMuted hover:text-pitwall-textBright transition-colors"
-              title="Reset to 0.00km"
+              title="Reset to Lap Start"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Calibrated Playback Speeds */}
+          {/* Calibrated Playback Speeds with Lap-Time Scale */}
           <div className="flex items-center gap-1 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border text-[11px]">
             <span className="text-pitwall-textMuted">Pace:</span>
-            {[
-              { spd: 1, label: '1x (12s)' },
-              { spd: 2, label: '2x (6s)' },
-              { spd: 3, label: '3x (4s)' },
-            ].map(({ spd, label }) => (
+            {[1, 2, 4, 8, 16].map((spd) => (
               <button
                 key={spd}
-                onClick={() => setPlaybackSpeed(spd)}
+                onClick={() => onChangeSpeed(spd)}
                 className={`font-bold px-1 transition-colors ${
-                  playbackSpeed === spd ? 'text-amber-400 font-extrabold' : 'text-pitwall-textMuted hover:text-pitwall-textBright'
+                  playbackSpeed === spd
+                    ? 'text-amber-400 font-extrabold'
+                    : 'text-pitwall-textMuted hover:text-pitwall-textBright'
                 }`}
-                title={`Playback pace: ${label}`}
+                title={`${spd}x playback pace (${(lapDurationSec / spd).toFixed(1)}s total)`}
               >
                 {spd}x
               </button>
@@ -480,7 +646,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
         <div>
           <span className="text-[10px] text-pitwall-textMuted block">THROTTLE / BRAKE</span>
           <span className="font-bold text-pitwall-textBright tabular-nums">
-            T:{curPoint?.c1Throttle || 0}% • B:{curPoint?.c1Brake || 0}%
+            T:{Math.min(100, Math.max(0, curPoint?.c1Throttle || 0))}% • B:{Math.min(100, Math.max(0, curPoint?.c1Brake || 0))}%
           </span>
         </div>
 
@@ -495,8 +661,94 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
         </div>
       </div>
 
+      {/* SERIES CHECKLIST: Include / Exclude Telemetry Curves */}
+      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-pitwall-subpanel border border-pitwall-border rounded-md text-xs font-mono mb-3">
+        <span className="font-bold text-pitwall-textMuted uppercase text-[10px] sm:text-[11px] mr-1">
+          CHANNELS:
+        </span>
+        <button
+          onClick={() => setChannels((c) => ({ ...c, speed: !c.speed }))}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
+            channels.speed
+              ? 'bg-blue-500/15 text-blue-400 border-blue-500/40'
+              : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
+          }`}
+          title="Toggle Speed / Velocity curve"
+        >
+          <span className={`w-2 h-2 rounded-xs ${channels.speed ? 'bg-blue-400' : 'bg-gray-500'}`} />
+          <span>Velocity (Speed)</span>
+        </button>
+
+        <button
+          onClick={() => setChannels((c) => ({ ...c, throttle: !c.throttle }))}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
+            channels.throttle
+              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+              : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
+          }`}
+          title="Toggle Throttle Input curve"
+        >
+          <span className={`w-2 h-2 rounded-xs ${channels.throttle ? 'bg-emerald-400' : 'bg-gray-500'}`} />
+          <span>Throttle (%)</span>
+        </button>
+
+        <button
+          onClick={() => setChannels((c) => ({ ...c, brake: !c.brake }))}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
+            channels.brake
+              ? 'bg-rose-500/15 text-rose-400 border-rose-500/40'
+              : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
+          }`}
+          title="Toggle Brake Pressure curve"
+        >
+          <span className={`w-2 h-2 rounded-xs ${channels.brake ? 'bg-rose-400' : 'bg-gray-500'}`} />
+          <span>Brake (%)</span>
+        </button>
+
+        <button
+          onClick={() => setChannels((c) => ({ ...c, gear: !c.gear }))}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
+            channels.gear
+              ? 'bg-amber-500/15 text-amber-400 border-amber-500/40'
+              : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
+          }`}
+          title="Toggle Gear Selection curve"
+        >
+          <span className={`w-2 h-2 rounded-xs ${channels.gear ? 'bg-amber-400' : 'bg-gray-500'}`} />
+          <span>Gear (1-8)</span>
+        </button>
+
+        <button
+          onClick={() => setChannels((c) => ({ ...c, rpm: !c.rpm }))}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
+            channels.rpm
+              ? 'bg-purple-500/15 text-purple-400 border-purple-500/40'
+              : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
+          }`}
+          title="Toggle Engine RPM curve"
+        >
+          <span className={`w-2 h-2 rounded-xs ${channels.rpm ? 'bg-purple-400' : 'bg-gray-500'}`} />
+          <span>Engine RPM</span>
+        </button>
+
+        {isComparisonMode && (
+          <button
+            onClick={() => setChannels((c) => ({ ...c, delta: !c.delta }))}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-all cursor-pointer ${
+              channels.delta
+                ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
+                : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border opacity-50'
+            }`}
+            title="Toggle Delta Time curve"
+          >
+            <span className={`w-2 h-2 rounded-xs ${channels.delta ? 'bg-cyan-400' : 'bg-gray-500'}`} />
+            <span>Time Delta (Δt)</span>
+          </button>
+        )}
+      </div>
+
       {/* High-Performance Canvas Oscilloscope */}
-      <div className="relative w-full h-[360px] rounded-md border border-pitwall-border overflow-hidden cursor-crosshair">
+      <div className="relative w-full h-[380px] rounded-md border border-pitwall-border overflow-hidden cursor-crosshair">
         <canvas
           ref={canvasRef}
           onClick={handleCanvasInteraction}
@@ -527,7 +779,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
         </div>
       </div>
 
-      {/* Telemetry Metrics Table */}
+      {/* Telemetry Metrics Summary */}
       <div className={`mt-4 pt-3 border-t border-pitwall-border grid gap-3 text-xs font-mono ${
         isComparisonMode ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'
       }`}>

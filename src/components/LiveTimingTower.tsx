@@ -49,7 +49,17 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
 
   // Compute best laps & sector splits across all drivers
   const { timingMap, sessionBestLap, sessionBestS1, sessionBestS2, sessionBestS3 } = useMemo(() => {
-    const map = new Map<number, { best: number; last: number; s1: number; s2: number; s3: number; lapCount: number }>();
+    const map = new Map<number, {
+      best: number;
+      last: number;
+      bestS1: number;
+      bestS2: number;
+      bestS3: number;
+      lastS1: number;
+      lastS2: number;
+      lastS3: number;
+      lapCount: number;
+    }>();
     let overallBest = Infinity;
     let bS1 = Infinity;
     let bS2 = Infinity;
@@ -65,12 +75,25 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
       if (lap.duration_sector_2 && lap.duration_sector_2 < bS2) bS2 = lap.duration_sector_2;
       if (lap.duration_sector_3 && lap.duration_sector_3 < bS3) bS3 = lap.duration_sector_3;
 
+      const bestS1 = isBest
+        ? (lap.duration_sector_1 || prev?.bestS1 || 0)
+        : (prev?.bestS1 || lap.duration_sector_1 || 0);
+      const bestS2 = isBest
+        ? (lap.duration_sector_2 || prev?.bestS2 || 0)
+        : (prev?.bestS2 || lap.duration_sector_2 || 0);
+      const bestS3 = isBest
+        ? (lap.duration_sector_3 || prev?.bestS3 || 0)
+        : (prev?.bestS3 || lap.duration_sector_3 || 0);
+
       map.set(lap.driver_number, {
         best: isBest ? lap.lap_duration : prev?.best || lap.lap_duration,
         last: lap.lap_duration,
-        s1: lap.duration_sector_1 || prev?.s1 || 0,
-        s2: lap.duration_sector_2 || prev?.s2 || 0,
-        s3: lap.duration_sector_3 || prev?.s3 || 0,
+        bestS1,
+        bestS2,
+        bestS3,
+        lastS1: lap.duration_sector_1 || 0,
+        lastS2: lap.duration_sector_2 || 0,
+        lastS3: lap.duration_sector_3 || 0,
         lapCount: (prev?.lapCount || 0) + 1,
       });
     });
@@ -97,9 +120,10 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
 
       const bestLapVal = timing?.best || 81.24 + index * 0.18;
       const lastLapVal = timing?.last || 82.15 + index * 0.22;
-      const s1Val = timing?.s1 || 17.4 + (index % 3) * 0.1;
-      const s2Val = timing?.s2 || 38.0 + (index % 3) * 0.2;
-      const s3Val = timing?.s3 || 32.1 + (index % 3) * 0.15;
+      // Use best lap sectors so they match the best lap time perfectly
+      const s1Val = timing?.bestS1 || (17.4 + (index % 3) * 0.1);
+      const s2Val = timing?.bestS2 || (38.0 + (index % 3) * 0.2);
+      const s3Val = timing?.bestS3 || (32.1 + (index % 3) * 0.15);
 
       return {
         driver,

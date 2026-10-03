@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Driver, CarAnalysisStats } from '../types/f1';
+import type { Driver, CarAnalysisStats, CarTelemetryComparisonPoint } from '../types/f1';
 
 interface HeadToHeadRadarProps {
   driver1: Driver | null;
@@ -8,6 +8,7 @@ interface HeadToHeadRadarProps {
   stats2: CarAnalysisStats;
   selectedYear?: number;
   isComparisonMode?: boolean;
+  currentPoint?: CarTelemetryComparisonPoint | null;
 }
 
 export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
@@ -17,6 +18,7 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
   stats2,
   selectedYear = 2026,
   isComparisonMode = true,
+  currentPoint,
 }) => {
   const formatColor = (hex?: string) => {
     if (!hex) return '#e10600';
@@ -100,7 +102,7 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
             Vehicle Dynamics & Telemetry Profiling
           </h2>
           <p className="text-xs text-pitwall-textMuted font-mono">
-            Direct Engineering Comparison • Aerodynamic Efficiency, Traction & Braking
+            Full-Lap Engineering Benchmarks (Static Analysis) • Instantaneous Snapshot (Live Replay)
           </p>
         </div>
 
@@ -120,6 +122,36 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
           )}
         </div>
       </div>
+
+      {/* Dynamic Instantaneous Snapshot Strip */}
+      {currentPoint && (
+        <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5 mb-3 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-pitwall-bg text-pitwall-textMuted font-bold uppercase border border-pitwall-border">
+              REPLAY SNAPSHOT
+            </span>
+            <span className="text-pitwall-textMuted text-[11px]">
+              Pos: {currentPoint.percentage}% ({currentPoint.distance}m)
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold" style={{ color: c1Color }}>{driver1?.name_acronym}:</span>
+              <span className="font-bold text-pitwall-textBright tabular-nums">{currentPoint.c1Speed} km/h</span>
+              <span className="text-[11px] text-pitwall-textMuted">T:{currentPoint.c1Throttle}% B:{currentPoint.c1Brake}% G{currentPoint.c1Gear}</span>
+            </div>
+            {isComparisonMode && driver2 && (
+              <div className="flex items-center gap-1.5 border-l border-pitwall-border pl-3">
+                <span className="font-bold" style={{ color: c2Color }}>{driver2.name_acronym}:</span>
+                <span className="font-bold text-pitwall-textBright tabular-nums">{currentPoint.c2Speed} km/h</span>
+                <span className={`text-[11px] font-bold tabular-nums ${currentPoint.speedDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  (Δ {currentPoint.speedDelta >= 0 ? `+${currentPoint.speedDelta}` : currentPoint.speedDelta} km/h)
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">

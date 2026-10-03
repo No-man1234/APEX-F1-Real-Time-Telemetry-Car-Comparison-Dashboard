@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meeting, Session } from '../types/f1';
-import { RefreshCw, Zap, Sun, Moon, GitCompare, User } from 'lucide-react';
+import { RefreshCw, Sun, Moon, GitCompare, User } from 'lucide-react';
 
 interface HeaderProps {
   selectedYear: number;
@@ -129,27 +129,22 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="font-bold">{isLivePolling ? 'FEED: STREAMING' : 'FEED: PAUSED'}</span>
           </button>
 
-          {/* Quick Jump to Latest Session */}
+          {/* Obvious, Prominent Refresh / Sync Latest Race Button */}
           <button
             onClick={onFetchLatest}
             disabled={isLoading}
-            aria-label="Jump to latest available Grand Prix session"
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-pitwall-subpanel hover:bg-pitwall-card text-pitwall-textSecondary hover:text-pitwall-textBright border border-pitwall-border transition-colors disabled:opacity-50"
-          >
-            <Zap className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
-            <span className="hidden sm:inline">Latest GP</span>
-          </button>
-
-          {/* Activity / Sync Indicator */}
-          <div
-            className="w-7 h-7 rounded bg-pitwall-subpanel border border-pitwall-border flex items-center justify-center text-pitwall-textMuted"
-            title={isLoading ? 'Fetching data...' : 'Feed idle'}
+            aria-label="Refresh and sync latest race telemetry"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-[#e10600] hover:bg-[#c30500] text-white font-mono font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            title="Click to refresh and fetch latest Grand Prix session"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#e10600]' : ''}`}
+              className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`}
               aria-hidden="true"
             />
-          </div>
+            <span className="tracking-wide">
+              {isLoading ? 'SYNCING LATEST...' : 'REFRESH LATEST RACE'}
+            </span>
+          </button>
         </div>
       </div>
 

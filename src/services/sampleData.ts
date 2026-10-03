@@ -278,14 +278,74 @@ export function generateSyntheticLapTelemetry(driverNum: number, speedOffset: nu
   return points;
 }
 
-export function generateMonzaTrackCoordinates(): { x: number; y: number }[] {
+// Authentic circuit coordinates for Bahrain International Circuit (Sakhir)
+export function generateBahrainTrackCoordinates(): { x: number; y: number }[] {
+  const waypoints: [number, number][] = [
+    [100, 300], [250, 300], [420, 300], [520, 305], // Main Straight
+    [560, 320], [580, 360], [560, 400], [520, 420], // Turn 1 Hairpin
+    [480, 430], [460, 450],                         // Turn 2 & 3
+    [450, 500], [430, 540], [390, 560],             // Turn 4 Straight & Braking
+    [340, 550], [300, 520], [260, 490],             // Turns 5, 6, 7 Esses
+    [220, 480], [190, 500], [180, 530], [200, 560], // Turn 8 Hairpin
+    [240, 580], [270, 610], [260, 640], [220, 660], // Turns 9 & 10
+    [260, 690], [350, 710], [450, 720], [530, 715], // Back Straight
+    [560, 690], [570, 650],                         // Turn 11 Uphill
+    [550, 600], [530, 550],                         // Turn 12 & 13
+    [480, 480], [400, 420],                         // Infield exit
+    [320, 360], [220, 320], [150, 305],             // Turn 14 & 15 into Main Straight
+  ];
+
+  // Interpolate smoothly
   const points: { x: number; y: number }[] = [];
-  const count = 120;
-  for (let i = 0; i < count; i++) {
-    const t = (i / count) * 2 * Math.PI;
-    const x = Math.cos(t) * 180 + Math.sin(2 * t) * 60;
-    const y = Math.sin(t) * 90 + Math.cos(2 * t) * 45;
-    points.push({ x: Math.round(x * 10), y: Math.round(y * 10) });
+  const n = waypoints.length;
+  const stepsPerSegment = 5;
+  for (let i = 0; i < n; i++) {
+    const p0 = waypoints[(i - 1 + n) % n];
+    const p1 = waypoints[i];
+    const p2 = waypoints[(i + 1) % n];
+    const p3 = waypoints[(i + 2) % n];
+    for (let s = 0; s < stepsPerSegment; s++) {
+      const t = s / stepsPerSegment;
+      // Catmull-Rom spline interpolation
+      const x = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t * t + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t * t * t);
+      const y = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t * t + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t * t * t);
+      points.push({ x: Math.round(x), y: Math.round(y) });
+    }
+  }
+  return points;
+}
+
+// Authentic circuit coordinates for Autodromo Nazionale Monza
+export function generateMonzaTrackCoordinates(): { x: number; y: number }[] {
+  const waypoints: [number, number][] = [
+    [100, 150], [220, 150], [360, 150], [480, 150], // Rettifilo Main Straight
+    [520, 160], [535, 185], [515, 210], [470, 215], // Variante del Rettifilo (T1-T2)
+    [440, 230], [410, 260], [390, 310], [390, 370], // Curva Grande (Biassono)
+    [380, 430], [360, 480],                         // Straight to Roggia
+    [340, 510], [360, 530], [340, 550], [310, 540], // Variante della Roggia (T4-T5)
+    [280, 520], [250, 490],                         // Short Straight to Lesmo
+    [220, 480], [200, 495], [195, 525],             // Curva di Lesmo 1
+    [185, 550], [170, 565], [150, 550],             // Curva di Lesmo 2
+    [130, 510], [110, 450], [95, 380], [85, 300],   // Curva del Serraglio Underpass
+    [80, 250], [60, 230], [80, 210], [100, 225],   // Variante Ascari
+    [115, 200], [115, 170],                         // Back Straight to Parabolica
+    [110, 140], [85, 130], [65, 145], [75, 165],   // Curva Parabolica (Alboreto)
+  ];
+
+  const points: { x: number; y: number }[] = [];
+  const n = waypoints.length;
+  const stepsPerSegment = 5;
+  for (let i = 0; i < n; i++) {
+    const p0 = waypoints[(i - 1 + n) % n];
+    const p1 = waypoints[i];
+    const p2 = waypoints[(i + 1) % n];
+    const p3 = waypoints[(i + 2) % n];
+    for (let s = 0; s < stepsPerSegment; s++) {
+      const t = s / stepsPerSegment;
+      const x = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t * t + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t * t * t);
+      const y = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t * t + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t * t * t);
+      points.push({ x: Math.round(x), y: Math.round(y) });
+    }
   }
   return points;
 }

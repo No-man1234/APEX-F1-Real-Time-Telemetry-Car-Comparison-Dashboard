@@ -18,6 +18,7 @@ import {
   getDrivers,
   getLaps,
   getCarData,
+  getLocation,
   getStints,
   getIntervals,
   getWeather,
@@ -40,6 +41,7 @@ import { LiveTimingTower } from './components/LiveTimingTower';
 import { HeadToHeadRadar } from './components/HeadToHeadRadar';
 import { StintsStrategy } from './components/StintsStrategy';
 import { SessionSummaryBanner } from './components/SessionSummaryBanner';
+import { FloatingReplayBar } from './components/FloatingReplayBar';
 
 export const App: React.FC = () => {
   // Navigation & Session State
@@ -88,7 +90,12 @@ export const App: React.FC = () => {
   // Telemetry & Comparison State
   const [car1Telemetry, setCar1Telemetry] = useState<CarTelemetry[]>([]);
   const [car2Telemetry, setCar2Telemetry] = useState<CarTelemetry[]>([]);
-  const [currentPointIndex, setCurrentPointIndex] = useState<number>(60);
+  const [trackLocations, setTrackLocations] = useState<{ x: number; y: number }[]>([]);
+
+  // Synchronized Playback & Scrubbing State
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1); // Default strictly 1x
+  const [currentPointIndex, setCurrentPointIndex] = useState<number>(0);
 
   // Timing & Track State
   const [laps, setLaps] = useState<Lap[]>([]);
@@ -96,7 +103,7 @@ export const App: React.FC = () => {
   const [intervals, setIntervals] = useState<Interval[]>([]);
   const [weather, setWeather] = useState<Weather | null>(SAMPLE_WEATHER);
 
-  // 1. Initial Load: Auto-detect latest session
+  // 1. Initial Load: Auto-detect latest session immediately on enter
   const initLatestSession = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -106,19 +113,44 @@ export const App: React.FC = () => {
         const yearMeetings = await getMeetings(latest.year || 2026);
         setMeetings(yearMeetings.length ? yearMeetings : [SAMPLE_MEETING]);
 
-        const matchingMeeting = yearMeetings.find((m) => m.meeting_key === latest.meeting_key) || yearMeetings[yearMeetings.length - 1] || SAMPLE_MEETING;
+        const matchingMeeting =
+          yearMeetings.find((m) => m.meeting_key === latest.meeting_key) ||
+          yearMeetings[yearMeetings.length - 1] ||
+          SAMPLE_MEETING;
         setSelectedMeeting(matchingMeeting);
 
         const meetingSessions = await getSessions(latest.year || 2026, matchingMeeting.meeting_key);
         setSessions(meetingSessions.length ? meetingSessions : [latest]);
         setSelectedSession(latest);
 
-        // Load drivers
-        const sessionDrivers = await getDrivers(latest.session_key);
+        // Fetch drivers & laps in parallel immediately to identify P1 player
+        const [sessionDrivers, sessionLaps] = await Promise.all([
+          getDrivers(latest.session_key),
+          getLaps(latest.session_key),
+        ]);
+        setLaps(sessionLaps);
+
         if (sessionDrivers.length >= 2) {
-          setDrivers(sessionDrivers);
-          setDriver1(sessionDrivers[0]);
-          setDriver2(sessionDrivers[1]);
+          const bestMap = new Map<number, number>();
+          sessionLaps.forEach((l) => {
+            if (!l.lap_duration || l.is_pit_out_lap) return;
+            const cur = bestMap.get(l.driver_number);
+            if (!cur || l.lap_duration < cur) {
+              bestMap.set(l.driver_number, l.lap_duration);
+            }
+          });
+
+          // Sort drivers strictly by fastest lap duration (P1, P2, P3...)
+          const sorted = [...sessionDrivers].sort((a, b) => {
+            const aT = bestMap.get(a.driver_number) ?? Infinity;
+            const bT = bestMap.get(b.driver_number) ?? Infinity;
+            return aT - bT;
+          });
+
+          setDrivers(sorted);
+          // Requirement 4: The default player will be the P1 player from latest race!
+          setDriver1(sorted[0]);
+          setDriver2(sorted[1]);
         }
       } else {
         const yearMeetings = await getMeetings(2024);
@@ -196,9 +228,24 @@ export const App: React.FC = () => {
       ]);
 
       if (driverList.length >= 2) {
-        setDrivers(driverList);
-        setDriver1((prev) => driverList.find((d) => d.driver_number === prev?.driver_number) || driverList[0]);
-        setDriver2((prev) => driverList.find((d) => d.driver_number === prev?.driver_number) || driverList[1]);
+        const bestMap = new Map<number, number>();
+        lapList.forEach((l) => {
+          if (!l.lap_duration || l.is_pit_out_lap) return;
+          const cur = bestMap.get(l.driver_number);
+          if (!cur || l.lap_duration < cur) {
+            bestMap.set(l.driver_number, l.lap_duration);
+          }
+        });
+
+        const sorted = [...driverList].sort((a, b) => {
+          const aT = bestMap.get(a.driver_number) ?? Infinity;
+          const bT = bestMap.get(b.driver_number) ?? Infinity;
+          return aT - bT;
+        });
+
+        setDrivers(sorted);
+        setDriver1((prev) => (prev ? sorted.find((d) => d.driver_number === prev.driver_number) || sorted[0] : sorted[0]));
+        setDriver2((prev) => (prev ? sorted.find((d) => d.driver_number === prev.driver_number) || sorted[1] : sorted[1]));
       } else {
         setDrivers(SAMPLE_DRIVERS);
       }
@@ -220,32 +267,87 @@ export const App: React.FC = () => {
     }
   }, [selectedSession, loadSessionData]);
 
-  // 5. Driver selection change: fetch or simulate telemetry
+  // 5. Driver selection change: fetch genuine lap-bounded telemetry and GPS track points
   const loadTelemetryForDrivers = useCallback(async () => {
-    if (!selectedSession || !driver1 || !driver2) return;
+    if (!selectedSession || !driver1) return;
 
     try {
-      const [c1Data, c2Data] = await Promise.all([
-        getCarData(selectedSession.session_key, driver1.driver_number),
-        getCarData(selectedSession.session_key, driver2.driver_number),
+      // Find Driver 1's best flying lap to bound the OpenF1 query window
+      const d1Laps = laps.filter(
+        (l) => l.driver_number === driver1.driver_number && l.lap_duration && !l.is_pit_out_lap
+      );
+      const d1Best = d1Laps.reduce<Lap | null>(
+        (min, cur) => (!min || (cur.lap_duration && cur.lap_duration < (min.lap_duration || Infinity)) ? cur : min),
+        null
+      );
+
+      let d1Start: string | undefined;
+      let d1End: string | undefined;
+      if (d1Best?.date_start && d1Best?.lap_duration) {
+        d1Start = d1Best.date_start;
+        d1End = new Date(new Date(d1Start).getTime() + (d1Best.lap_duration + 1.5) * 1000).toISOString();
+      }
+
+      // Find Driver 2's best flying lap if in comparison mode
+      let d2Start: string | undefined;
+      let d2End: string | undefined;
+      if (driver2) {
+        const d2Laps = laps.filter(
+          (l) => l.driver_number === driver2.driver_number && l.lap_duration && !l.is_pit_out_lap
+        );
+        const d2Best = d2Laps.reduce<Lap | null>(
+          (min, cur) => (!min || (cur.lap_duration && cur.lap_duration < (min.lap_duration || Infinity)) ? cur : min),
+          null
+        );
+        if (d2Best?.date_start && d2Best?.lap_duration) {
+          d2Start = d2Best.date_start;
+          d2End = new Date(new Date(d2Start).getTime() + (d2Best.lap_duration + 1.5) * 1000).toISOString();
+        }
+      }
+
+      const sanitize = (data: CarTelemetry[]): CarTelemetry[] => {
+        return data.map((pt) => ({
+          ...pt,
+          throttle: Math.min(100, Math.max(0, pt.throttle === 104 ? 0 : pt.throttle)),
+          brake: Math.min(100, Math.max(0, pt.brake === 104 ? 0 : pt.brake)),
+          drs: pt.drs > 14 ? 0 : pt.drs,
+        }));
+      };
+
+      const [c1Raw, c2Raw, locRaw] = await Promise.all([
+        getCarData(selectedSession.session_key, driver1.driver_number, d1Start, d1End),
+        driver2 ? getCarData(selectedSession.session_key, driver2.driver_number, d2Start, d2End) : Promise.resolve([]),
+        d1Start && d1End
+          ? getLocation(selectedSession.session_key, driver1.driver_number, d1Start, d1End)
+          : getLocation(selectedSession.session_key, driver1.driver_number),
       ]);
 
-      if (c1Data && c1Data.length > 20) {
-        setCar1Telemetry(c1Data);
+      if (c1Raw && c1Raw.length >= 10) {
+        setCar1Telemetry(sanitize(c1Raw));
       } else {
         setCar1Telemetry(generateSyntheticLapTelemetry(driver1.driver_number, 0));
       }
 
-      if (c2Data && c2Data.length > 20) {
-        setCar2Telemetry(c2Data);
-      } else {
+      if (c2Raw && c2Raw.length >= 10 && driver2) {
+        setCar2Telemetry(sanitize(c2Raw));
+      } else if (driver2) {
         setCar2Telemetry(generateSyntheticLapTelemetry(driver2.driver_number, -4));
+      } else {
+        setCar2Telemetry([]);
+      }
+
+      if (locRaw && locRaw.length >= 20) {
+        setTrackLocations(locRaw.map((p) => ({ x: p.x, y: p.y })));
+      } else {
+        setTrackLocations([]);
       }
     } catch (err) {
-      setCar1Telemetry(generateSyntheticLapTelemetry(driver1.driver_number, 0));
-      setCar2Telemetry(generateSyntheticLapTelemetry(driver2.driver_number, -4));
+      console.warn('Telemetry fetch error, using synthetic telemetry', err);
+      if (driver1) setCar1Telemetry(generateSyntheticLapTelemetry(driver1.driver_number, 0));
+      if (driver2) setCar2Telemetry(generateSyntheticLapTelemetry(driver2.driver_number, -4));
+      setTrackLocations([]);
     }
-  }, [selectedSession, driver1, driver2]);
+  }, [selectedSession, driver1, driver2, laps]);
 
   useEffect(() => {
     loadTelemetryForDrivers();
@@ -314,6 +416,37 @@ export const App: React.FC = () => {
 
   const currentPoint = comparisonData[currentPointIndex] || comparisonData[0] || null;
 
+  // Selected driver lap duration for authentic 1x pacing
+  const selectedPlayerLapDuration = useMemo(() => {
+    if (!driver1) return 90;
+    const recorded = driverLapsMap.get(driver1.driver_number)?.best;
+    return recorded && recorded > 30 && recorded < 180 ? recorded : 90;
+  }, [driver1, driverLapsMap]);
+
+  // Global synchronized playback loop across all views/tabs
+  useEffect(() => {
+    if (!isPlaying || !comparisonData.length) return;
+
+    const baseDuration = selectedPlayerLapDuration > 0 ? selectedPlayerLapDuration : 90;
+    const stepIntervalMs = Math.max(
+      16,
+      Math.round((baseDuration / comparisonData.length) * (1000 / playbackSpeed))
+    );
+
+    const interval = setInterval(() => {
+      setCurrentPointIndex((prev) => {
+        const next = prev + 1;
+        if (next >= comparisonData.length) {
+          setIsPlaying(false);
+          return 0;
+        }
+        return next;
+      });
+    }, stepIntervalMs);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, comparisonData.length, playbackSpeed, selectedPlayerLapDuration]);
+
   return (
     <div className="min-h-screen bg-pitwall-bg text-pitwall-textBright flex flex-col font-f1">
       {/* Header & Controls */}
@@ -339,7 +472,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Pit-Wall Dashboard */}
-      <main className="flex-1 max-w-[1720px] w-full mx-auto px-4 sm:px-6 py-4">
+      <main className="flex-1 max-w-[1720px] w-full mx-auto px-4 sm:px-6 py-4 pb-28">
         {/* Session Status Strip */}
         <SessionSummaryBanner
           meeting={selectedMeeting}
@@ -374,6 +507,11 @@ export const App: React.FC = () => {
               selectedYear={selectedYear}
               isComparisonMode={isComparisonMode}
               theme={theme}
+              lapDurationSec={selectedPlayerLapDuration}
+              isPlaying={isPlaying}
+              onTogglePlay={() => setIsPlaying((p) => !p)}
+              playbackSpeed={playbackSpeed}
+              onChangeSpeed={setPlaybackSpeed}
             />
             <CockpitHUD
               driver1={driver1}
@@ -405,6 +543,11 @@ export const App: React.FC = () => {
               selectedYear={selectedYear}
               isComparisonMode={isComparisonMode}
               theme={theme}
+              lapDurationSec={selectedPlayerLapDuration}
+              isPlaying={isPlaying}
+              onTogglePlay={() => setIsPlaying((p) => !p)}
+              playbackSpeed={playbackSpeed}
+              onChangeSpeed={setPlaybackSpeed}
             />
           </div>
         )}
@@ -437,13 +580,24 @@ export const App: React.FC = () => {
                 meeting={selectedMeeting}
                 driver1={driver1}
                 driver2={driver2}
-                progressPercentage={currentPoint?.percentage || 50}
+                progressPercentage={currentPoint?.percentage || 0}
+                locations={trackLocations}
                 onTrackClick={(pct) => {
                   const targetIdx = Math.round((pct / 100) * (comparisonData.length - 1));
                   setCurrentPointIndex(targetIdx);
                 }}
                 isComparisonMode={isComparisonMode}
                 theme={theme}
+                isPlaying={isPlaying}
+                onTogglePlay={() => setIsPlaying((p) => !p)}
+                onResetReplay={() => {
+                  setIsPlaying(false);
+                  setCurrentPointIndex(0);
+                }}
+                playbackSpeed={playbackSpeed}
+                onChangeSpeed={setPlaybackSpeed}
+                currentSpeed={currentPoint?.c1Speed}
+                c2Speed={currentPoint?.c2Speed}
               />
             </div>
             <div>
@@ -466,6 +620,7 @@ export const App: React.FC = () => {
             stats2={stats2}
             selectedYear={selectedYear}
             isComparisonMode={isComparisonMode}
+            currentPoint={currentPoint}
           />
         )}
 
@@ -478,6 +633,24 @@ export const App: React.FC = () => {
           />
         )}
       </main>
+
+      {/* Floating Global Replay Dock */}
+      <FloatingReplayBar
+        isPlaying={isPlaying}
+        onTogglePlay={() => setIsPlaying((p) => !p)}
+        currentPointIndex={currentPointIndex}
+        totalPoints={comparisonData.length}
+        onScrub={setCurrentPointIndex}
+        playbackSpeed={playbackSpeed}
+        onChangeSpeed={setPlaybackSpeed}
+        driver1={driver1}
+        driver2={driver2}
+        currentPoint={currentPoint}
+        lapDurationSec={selectedPlayerLapDuration}
+        selectedYear={selectedYear}
+        isComparisonMode={isComparisonMode}
+        theme={theme}
+      />
 
       {/* Engineering Footer */}
       <footer className="border-t border-pitwall-border bg-pitwall-panel py-3 px-4 text-xs text-pitwall-textMuted font-mono">
