@@ -57,41 +57,41 @@ export const SessionSummaryBanner: React.FC<SessionSummaryBannerProps> = ({
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
           <Thermometer className="w-3.5 h-3.5 text-rose-400" aria-hidden="true" />
           <span className="text-pitwall-textMuted">Track:</span>
-          <span className="font-bold text-white tabular-nums">{trackTemp.toFixed(1)}°C</span>
+          <span className="font-bold text-pitwall-textBright tabular-nums">{trackTemp.toFixed(1)}°C</span>
         </div>
 
         {/* Ambient Air Temp */}
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
           <Thermometer className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
           <span className="text-pitwall-textMuted">Air:</span>
-          <span className="font-bold text-white tabular-nums">{airTemp.toFixed(1)}°C</span>
+          <span className="font-bold text-pitwall-textBright tabular-nums">{airTemp.toFixed(1)}°C</span>
         </div>
 
         {/* Relative Humidity */}
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
           <Droplets className="w-3.5 h-3.5 text-cyan-400" aria-hidden="true" />
           <span className="text-pitwall-textMuted">Humidity:</span>
-          <span className="font-bold text-white tabular-nums">{humidity}%</span>
+          <span className="font-bold text-pitwall-textBright tabular-nums">{humidity}%</span>
         </div>
 
         {/* Wind Speed */}
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
           <Wind className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
           <span className="text-pitwall-textMuted">Wind:</span>
-          <span className="font-bold text-white tabular-nums">{wind} m/s</span>
+          <span className="font-bold text-pitwall-textBright tabular-nums">{wind} m/s</span>
         </div>
 
         {/* Precipitation Risk */}
         <div className="flex items-center gap-1.5 bg-pitwall-subpanel px-2 py-1 rounded border border-pitwall-border">
           <CloudRain className={`w-3.5 h-3.5 ${rainfall > 0 ? 'text-blue-400' : 'text-pitwall-textMuted'}`} aria-hidden="true" />
           <span className="text-pitwall-textMuted">Rain:</span>
-          <span className={`font-bold ${rainfall > 0 ? 'text-blue-400' : 'text-white'}`}>
+          <span className={`font-bold ${rainfall > 0 ? 'text-blue-500' : 'text-pitwall-textBright'}`}>
             {rainfall > 0 ? 'WET' : '0%'}
           </span>
         </div>
 
         {/* FIA Track Status */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 font-bold">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold">
           <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
           <span>TRACK CLEAR</span>
         </div>

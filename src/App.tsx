@@ -49,6 +49,32 @@ export const App: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
+  // Theme & Appearance State
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('apex_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+      localStorage.setItem('apex_theme', theme);
+    }
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  // Optional Comparison Mode (Solo Car vs Dual-Car Comparison)
+  const [isComparisonMode, setIsComparisonMode] = useState<boolean>(true);
+  const handleToggleComparisonMode = () => {
+    setIsComparisonMode((prev) => !prev);
+  };
+
   // Live Auto-Sync
   const [isLivePolling, setIsLivePolling] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -252,6 +278,26 @@ export const App: React.FC = () => {
     setDriver2(temp);
   };
 
+  // Lap times map & Driver List sorted strictly by lap time ascending
+  const { driverLapsMap, sortedDrivers } = useMemo(() => {
+    const map = new Map<number, { best: number }>();
+    laps.forEach((lap) => {
+      if (!lap.lap_duration || lap.is_pit_out_lap) return;
+      const current = map.get(lap.driver_number);
+      if (!current || lap.lap_duration < current.best) {
+        map.set(lap.driver_number, { best: lap.lap_duration });
+      }
+    });
+
+    const sorted = [...drivers].sort((a, b) => {
+      const aTime = map.get(a.driver_number)?.best ?? (80.5 + (a.driver_number % 20) * 0.15);
+      const bTime = map.get(b.driver_number)?.best ?? (80.5 + (b.driver_number % 20) * 0.15);
+      return aTime - bTime;
+    });
+
+    return { driverLapsMap: map, sortedDrivers: sorted };
+  }, [drivers, laps]);
+
   // Synchronized telemetry comparison array
   const comparisonData: CarTelemetryComparisonPoint[] = useMemo(() => {
     return alignTelemetryForComparison(car1Telemetry, car2Telemetry);
@@ -286,6 +332,10 @@ export const App: React.FC = () => {
         isLoading={isLoading}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        isComparisonMode={isComparisonMode}
+        onToggleComparisonMode={handleToggleComparisonMode}
       />
 
       {/* Main Pit-Wall Dashboard */}
@@ -299,12 +349,15 @@ export const App: React.FC = () => {
 
         {/* Dual-Channel Driver Picker */}
         <DriverPicker
-          drivers={drivers}
+          drivers={sortedDrivers}
           driver1={driver1}
           driver2={driver2}
           onSelectDriver1={setDriver1}
           onSelectDriver2={setDriver2}
           onSwapDrivers={handleSwapDrivers}
+          isComparisonMode={isComparisonMode}
+          onToggleComparisonMode={handleToggleComparisonMode}
+          driverLapsMap={driverLapsMap}
         />
 
         {/* Active View Container */}
@@ -318,11 +371,16 @@ export const App: React.FC = () => {
               onScrub={setCurrentPointIndex}
               stats1={stats1}
               stats2={stats2}
+              selectedYear={selectedYear}
+              isComparisonMode={isComparisonMode}
+              theme={theme}
             />
             <CockpitHUD
               driver1={driver1}
               driver2={driver2}
               currentPoint={currentPoint}
+              selectedYear={selectedYear}
+              isComparisonMode={isComparisonMode}
             />
           </div>
         )}
@@ -333,6 +391,8 @@ export const App: React.FC = () => {
               driver1={driver1}
               driver2={driver2}
               currentPoint={currentPoint}
+              selectedYear={selectedYear}
+              isComparisonMode={isComparisonMode}
             />
             <CarTelemetryComparison
               driver1={driver1}
@@ -342,13 +402,16 @@ export const App: React.FC = () => {
               onScrub={setCurrentPointIndex}
               stats1={stats1}
               stats2={stats2}
+              selectedYear={selectedYear}
+              isComparisonMode={isComparisonMode}
+              theme={theme}
             />
           </div>
         )}
 
         {activeTab === 'timing' && (
           <LiveTimingTower
-            drivers={drivers}
+            drivers={sortedDrivers}
             laps={laps}
             stints={stints}
             intervals={intervals}
@@ -360,8 +423,10 @@ export const App: React.FC = () => {
             }}
             onSelectDriver2={(d) => {
               setDriver2(d);
+              if (!isComparisonMode) setIsComparisonMode(true);
               setActiveTab('telemetry');
             }}
+            isComparisonMode={isComparisonMode}
           />
         )}
 
@@ -377,6 +442,8 @@ export const App: React.FC = () => {
                   const targetIdx = Math.round((pct / 100) * (comparisonData.length - 1));
                   setCurrentPointIndex(targetIdx);
                 }}
+                isComparisonMode={isComparisonMode}
+                theme={theme}
               />
             </div>
             <div>
@@ -384,6 +451,8 @@ export const App: React.FC = () => {
                 driver1={driver1}
                 driver2={driver2}
                 currentPoint={currentPoint}
+                selectedYear={selectedYear}
+                isComparisonMode={isComparisonMode}
               />
             </div>
           </div>
@@ -395,6 +464,8 @@ export const App: React.FC = () => {
             driver2={driver2}
             stats1={stats1}
             stats2={stats2}
+            selectedYear={selectedYear}
+            isComparisonMode={isComparisonMode}
           />
         )}
 
@@ -403,6 +474,7 @@ export const App: React.FC = () => {
             driver1={driver1}
             driver2={driver2}
             stints={stints}
+            isComparisonMode={isComparisonMode}
           />
         )}
       </main>

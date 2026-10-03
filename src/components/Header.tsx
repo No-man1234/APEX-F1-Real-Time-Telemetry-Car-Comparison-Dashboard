@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meeting, Session } from '../types/f1';
-import { RefreshCw, Zap } from 'lucide-react';
+import { RefreshCw, Zap, Sun, Moon, GitCompare, User } from 'lucide-react';
 
 interface HeaderProps {
   selectedYear: number;
@@ -17,6 +17,10 @@ interface HeaderProps {
   isLoading: boolean;
   activeTab: string;
   onTabChange: (tab: string) => void;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
+  isComparisonMode: boolean;
+  onToggleComparisonMode: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -33,11 +37,15 @@ export const Header: React.FC<HeaderProps> = ({
   onFetchLatest,
   isLoading,
   activeTab,
-  onTabChange
+  onTabChange,
+  theme,
+  onToggleTheme,
+  isComparisonMode,
+  onToggleComparisonMode,
 }) => {
   return (
     <header className="border-b border-pitwall-border bg-pitwall-panel/95 backdrop-blur sticky top-0 z-50">
-      {/* Top Bar: Workbench Branding & Live Feed Status */}
+      {/* Top Bar: Workbench Branding & Controls */}
       <div className="max-w-[1720px] mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
         {/* Brand & Purpose */}
         <div className="flex items-center gap-3">
@@ -58,6 +66,50 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Live Controls & System State */}
         <div className="flex items-center gap-2 text-xs font-mono">
+          {/* Comparison Mode Toggle */}
+          <button
+            onClick={onToggleComparisonMode}
+            aria-label={`Toggle comparison mode. Currently ${isComparisonMode ? 'Dual Car Comparison' : 'Single Car Analysis'}`}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border transition-colors ${
+              isComparisonMode
+                ? 'bg-blue-950/30 text-blue-400 border-blue-500/40 hover:bg-blue-900/30'
+                : 'bg-pitwall-subpanel text-pitwall-textSecondary border-pitwall-border hover:text-pitwall-textBright'
+            }`}
+            title={isComparisonMode ? 'Switch to Solo Car Analysis' : 'Enable Head-to-Head Comparison'}
+          >
+            {isComparisonMode ? (
+              <>
+                <GitCompare className="w-3.5 h-3.5 text-blue-400" aria-hidden="true" />
+                <span className="font-bold">COMPARISON MODE</span>
+              </>
+            ) : (
+              <>
+                <User className="w-3.5 h-3.5 text-pitwall-textMuted" aria-hidden="true" />
+                <span>SOLO CAR MODE</span>
+              </>
+            )}
+          </button>
+
+          {/* Theme Toggle Button (Dark / Light) */}
+          <button
+            onClick={onToggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} theme`}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-pitwall-subpanel hover:bg-pitwall-card text-pitwall-textSecondary hover:text-pitwall-textBright border border-pitwall-border transition-colors"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} theme`}
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
+                <span className="hidden sm:inline">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+                <span className="hidden sm:inline">Dark</span>
+              </>
+            )}
+          </button>
+
           {/* Live Feed Status Pill */}
           <button
             onClick={onToggleLivePolling}
@@ -82,10 +134,10 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onFetchLatest}
             disabled={isLoading}
             aria-label="Jump to latest available Grand Prix session"
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-pitwall-subpanel hover:bg-pitwall-card text-pitwall-textSecondary hover:text-white border border-pitwall-border transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-pitwall-subpanel hover:bg-pitwall-card text-pitwall-textSecondary hover:text-pitwall-textBright border border-pitwall-border transition-colors disabled:opacity-50"
           >
             <Zap className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
-            <span>Latest GP</span>
+            <span className="hidden sm:inline">Latest GP</span>
           </button>
 
           {/* Activity / Sync Indicator */}
@@ -115,10 +167,10 @@ export const Header: React.FC<HeaderProps> = ({
                 onChange={(e) => onYearChange(Number(e.target.value))}
                 className="bg-transparent text-pitwall-textBright font-bold outline-none cursor-pointer"
               >
-                <option value={2026} className="bg-pitwall-panel text-white">2026</option>
-                <option value={2025} className="bg-pitwall-panel text-white">2025</option>
-                <option value={2024} className="bg-pitwall-panel text-white">2024</option>
-                <option value={2023} className="bg-pitwall-panel text-white">2023</option>
+                <option value={2026} className="bg-pitwall-panel text-pitwall-textBright">2026</option>
+                <option value={2025} className="bg-pitwall-panel text-pitwall-textBright">2025</option>
+                <option value={2024} className="bg-pitwall-panel text-pitwall-textBright">2024</option>
+                <option value={2023} className="bg-pitwall-panel text-pitwall-textBright">2023</option>
               </select>
             </div>
 
@@ -143,7 +195,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="bg-transparent text-pitwall-textBright font-semibold outline-none cursor-pointer truncate w-full"
               >
                 {meetings.map((m) => (
-                  <option key={m.meeting_key} value={m.meeting_key} className="bg-pitwall-panel text-white">
+                  <option key={m.meeting_key} value={m.meeting_key} className="bg-pitwall-panel text-pitwall-textBright">
                     {m.meeting_name} ({m.circuit_short_name})
                   </option>
                 ))}
@@ -163,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="bg-transparent text-pitwall-textBright font-bold outline-none cursor-pointer"
               >
                 {sessions.map((s) => (
-                  <option key={s.session_key} value={s.session_key} className="bg-pitwall-panel text-white">
+                  <option key={s.session_key} value={s.session_key} className="bg-pitwall-panel text-pitwall-textBright">
                     {s.session_name}
                   </option>
                 ))}
@@ -171,14 +223,14 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </nav>
 
-          {/* Navigation Tabs (Functional, High-Density Workbench Tabs) */}
+          {/* Navigation Tabs */}
           <nav aria-label="Workbench Views" className="flex items-center gap-1 overflow-x-auto py-0.5 text-xs font-mono">
             {[
               { id: 'telemetry', label: 'Telemetry Traces' },
               { id: 'cockpit', label: 'Cockpit Gauges' },
               { id: 'timing', label: 'Timing & Sectors' },
               { id: 'track', label: 'Circuit GPS' },
-              { id: 'radar', label: 'Vehicle Dynamics' },
+              { id: 'radar', label: isComparisonMode ? 'Vehicle Dynamics' : 'Car Dynamics' },
               { id: 'stints', label: 'Tyre Strategy' },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
@@ -189,8 +241,8 @@ export const Header: React.FC<HeaderProps> = ({
                   aria-pressed={isActive}
                   className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition-colors border ${
                     isActive
-                      ? 'bg-pitwall-card text-white border-pitwall-borderLight font-bold shadow-xs'
-                      : 'bg-transparent text-pitwall-textSecondary border-transparent hover:text-white hover:bg-pitwall-panel'
+                      ? 'bg-pitwall-card text-pitwall-textBright border-pitwall-borderLight font-bold shadow-xs'
+                      : 'bg-transparent text-pitwall-textSecondary border-transparent hover:text-pitwall-textBright hover:bg-pitwall-panel'
                   }`}
                 >
                   {tab.label}

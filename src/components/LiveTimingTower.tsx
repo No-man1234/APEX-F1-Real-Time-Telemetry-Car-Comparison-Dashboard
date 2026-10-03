@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { Driver, Lap, Stint, Interval } from '../types/f1';
+import { formatLapTime } from '../utils/f1Formatters';
 
 interface LiveTimingTowerProps {
   drivers: Driver[];
@@ -10,6 +11,7 @@ interface LiveTimingTowerProps {
   driver2: Driver | null;
   onSelectDriver1: (driver: Driver) => void;
   onSelectDriver2: (driver: Driver) => void;
+  isComparisonMode: boolean;
 }
 
 export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
@@ -21,6 +23,7 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
   driver2,
   onSelectDriver1,
   onSelectDriver2,
+  isComparisonMode,
 }) => {
   const formatColor = (hex?: string) => {
     if (!hex) return '#e10600';
@@ -30,25 +33,18 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
   const getTyreBadge = (compound: string) => {
     switch (compound?.toUpperCase()) {
       case 'SOFT':
-        return { label: 'S', bg: 'bg-[#e10600]', text: 'text-white', border: 'border-[#e10600]' };
+        return { label: 'S', bg: 'bg-[#e10600]', text: 'text-white' };
       case 'MEDIUM':
-        return { label: 'M', bg: 'bg-[#ffd100]', text: 'text-black', border: 'border-[#ffd100]' };
+        return { label: 'M', bg: 'bg-[#ffd100]', text: 'text-black' };
       case 'HARD':
-        return { label: 'H', bg: 'bg-white', text: 'text-black', border: 'border-white' };
+        return { label: 'H', bg: 'bg-white', text: 'text-black' };
       case 'INTERMEDIATE':
-        return { label: 'I', bg: 'bg-[#39b54a]', text: 'text-white', border: 'border-[#39b54a]' };
+        return { label: 'I', bg: 'bg-[#39b54a]', text: 'text-white' };
       case 'WET':
-        return { label: 'W', bg: 'bg-[#0072ce]', text: 'text-white', border: 'border-[#0072ce]' };
+        return { label: 'W', bg: 'bg-[#0072ce]', text: 'text-white' };
       default:
-        return { label: 'M', bg: 'bg-[#ffd100]', text: 'text-black', border: 'border-[#ffd100]' };
+        return { label: 'M', bg: 'bg-[#ffd100]', text: 'text-black' };
     }
-  };
-
-  const formatLapTime = (sec: number | null) => {
-    if (!sec || sec <= 0) return '-:--.---';
-    const m = Math.floor(sec / 60);
-    const s = (sec % 60).toFixed(3);
-    return `${m}:${s.padStart(6, '0')}`;
   };
 
   // Compute best laps & sector splits across all drivers
@@ -88,9 +84,9 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
     };
   }, [laps]);
 
-  // Combine driver list with real timing statistics
-  const timingRows = useMemo(() => {
-    return drivers.map((driver, index) => {
+  // Combine driver list with timing statistics and sort strictly by lap time ascending
+  const sortedTimingRows = useMemo(() => {
+    const rows = drivers.map((driver, index) => {
       const timing = timingMap.get(driver.driver_number);
       const driverStints = stints.filter((s) => s.driver_number === driver.driver_number);
       const currentStint = driverStints[driverStints.length - 1];
@@ -107,9 +103,12 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
 
       return {
         driver,
-        position: index + 1,
-        gap: index === 0 ? 'LEADER' : intervalData?.gap_to_leader ? `+${intervalData.gap_to_leader}s` : `+${(index * 1.842).toFixed(3)}s`,
-        interval: index === 0 ? '-' : intervalData?.interval ? `+${intervalData.interval}s` : `+${(1.15 + (index % 3) * 0.35).toFixed(3)}s`,
+        bestLapNum: bestLapVal,
+        lastLapNum: lastLapVal,
+        s1Num: s1Val,
+        s2Num: s2Val,
+        s3Num: s3Val,
+        hasOfficialTime: !!timing?.best,
         lastLap: formatLapTime(lastLapVal),
         bestLap: formatLapTime(bestLapVal),
         isFastestLap: Math.abs(bestLapVal - sessionBestLap) < 0.05,
@@ -122,6 +121,24 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
         compound,
         tyreAge,
         pitStops: Math.max(1, driverStints.length || 1),
+        rawInterval: intervalData?.interval,
+      };
+    });
+
+    // Sort strictly by best lap duration ascending
+    rows.sort((a, b) => a.bestLapNum - b.bestLapNum);
+
+    // Compute gaps to leader based on the sorted order
+    const leaderTime = rows[0]?.bestLapNum || 80.0;
+    return rows.map((r, posIdx) => {
+      const gapSec = r.bestLapNum - leaderTime;
+      const intervalSec = posIdx > 0 ? r.bestLapNum - rows[posIdx - 1].bestLapNum : 0;
+
+      return {
+        ...r,
+        position: posIdx + 1,
+        gap: posIdx === 0 ? 'LEADER' : `+${gapSec.toFixed(3)}s`,
+        interval: posIdx === 0 ? '-' : `+${intervalSec.toFixed(3)}s`,
       };
     });
   }, [drivers, timingMap, stints, intervals, sessionBestLap, sessionBestS1, sessionBestS2, sessionBestS3]);
@@ -135,7 +152,7 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
             Session Timing & Classification
           </h2>
           <p className="text-xs text-pitwall-textMuted font-mono">
-            Official FIA Classification • Sector Deltas • Tyre Age
+            Sorted by Best Lap Time • Sector Splits • Compound Lifecycle
           </p>
         </div>
 
@@ -164,7 +181,7 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
               <th scope="col" className="py-2 px-2.5 font-bold w-10 text-center">POS</th>
               <th scope="col" className="py-2 px-2 font-bold w-12 text-center">NO</th>
               <th scope="col" className="py-2 px-3 font-bold">DRIVER</th>
-              <th scope="col" className="py-2 px-3 font-bold text-right">GAP</th>
+              <th scope="col" className="py-2 px-3 font-bold text-right">GAP TO P1</th>
               <th scope="col" className="py-2 px-3 font-bold text-right">INTERVAL</th>
               <th scope="col" className="py-2 px-3 font-bold text-right">LAST LAP</th>
               <th scope="col" className="py-2 px-3 font-bold text-right">BEST LAP</th>
@@ -172,11 +189,11 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
               <th scope="col" className="py-2 px-2.5 font-bold text-right">SEC 2</th>
               <th scope="col" className="py-2 px-2.5 font-bold text-right">SEC 3</th>
               <th scope="col" className="py-2 px-3 font-bold text-center">TYRE</th>
-              <th scope="col" className="py-2 px-3 font-bold text-center">CHANNEL</th>
+              <th scope="col" className="py-2 px-3 font-bold text-center">SELECT</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-pitwall-border bg-pitwall-bg">
-            {timingRows.map((row) => {
+            {sortedTimingRows.map((row) => {
               const teamColor = formatColor(row.driver.team_colour);
               const isC1 = driver1?.driver_number === row.driver.driver_number;
               const isC2 = driver2?.driver_number === row.driver.driver_number;
@@ -186,11 +203,11 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
                 <tr
                   key={row.driver.driver_number}
                   className={`hover:bg-pitwall-subpanel/80 transition-colors ${
-                    isC1 ? 'bg-[#141b2c]' : isC2 ? 'bg-[#221c16]' : ''
+                    isC1 ? 'bg-blue-950/20' : isC2 ? 'bg-amber-950/20' : ''
                   }`}
                 >
                   {/* Position */}
-                  <td className="py-1.5 px-2.5 font-bold text-center text-white tabular-nums">
+                  <td className="py-1.5 px-2.5 font-bold text-center text-pitwall-textBright tabular-nums">
                     {row.position}
                   </td>
 
@@ -232,7 +249,7 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
                   </td>
 
                   {/* Last Lap Time */}
-                  <td className="py-1.5 px-3 text-right text-white tabular-nums">
+                  <td className="py-1.5 px-3 text-right text-pitwall-textBright tabular-nums">
                     {row.lastLap}
                   </td>
 
@@ -277,32 +294,46 @@ export const LiveTimingTower: React.FC<LiveTimingTowerProps> = ({
                     </div>
                   </td>
 
-                  {/* Action Compare Buttons */}
+                  {/* Action Selection Buttons */}
                   <td className="py-1.5 px-3 text-center">
-                    <div className="inline-flex items-center gap-1">
+                    {isComparisonMode ? (
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          onClick={() => onSelectDriver1(row.driver)}
+                          aria-label={`Set ${row.driver.broadcast_name} as Channel 1`}
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
+                            isC1
+                              ? 'bg-[#3671c6] text-white'
+                              : 'bg-pitwall-subpanel text-pitwall-textMuted hover:text-pitwall-textBright hover:bg-pitwall-card border border-pitwall-border'
+                          }`}
+                        >
+                          C1
+                        </button>
+                        <button
+                          onClick={() => onSelectDriver2(row.driver)}
+                          aria-label={`Set ${row.driver.broadcast_name} as Channel 2`}
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
+                            isC2
+                              ? 'bg-[#ff8000] text-white'
+                              : 'bg-pitwall-subpanel text-pitwall-textMuted hover:text-pitwall-textBright hover:bg-pitwall-card border border-pitwall-border'
+                          }`}
+                        >
+                          C2
+                        </button>
+                      </div>
+                    ) : (
                       <button
                         onClick={() => onSelectDriver1(row.driver)}
-                        aria-label={`Set ${row.driver.broadcast_name} as Channel 1`}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
+                        aria-label={`Select ${row.driver.broadcast_name}`}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
                           isC1
-                            ? 'bg-[#3671c6] text-white'
-                            : 'bg-pitwall-subpanel text-pitwall-textMuted hover:text-white hover:bg-pitwall-card border border-pitwall-border'
+                            ? 'bg-[#e10600] text-white'
+                            : 'bg-pitwall-subpanel text-pitwall-textSecondary hover:text-pitwall-textBright hover:bg-pitwall-card border border-pitwall-border'
                         }`}
                       >
-                        C1
+                        {isC1 ? 'Active' : 'Select'}
                       </button>
-                      <button
-                        onClick={() => onSelectDriver2(row.driver)}
-                        aria-label={`Set ${row.driver.broadcast_name} as Channel 2`}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
-                          isC2
-                            ? 'bg-[#ff8000] text-white'
-                            : 'bg-pitwall-subpanel text-pitwall-textMuted hover:text-white hover:bg-pitwall-card border border-pitwall-border'
-                        }`}
-                      >
-                        C2
-                      </button>
-                    </div>
+                    )}
                   </td>
                 </tr>
               );

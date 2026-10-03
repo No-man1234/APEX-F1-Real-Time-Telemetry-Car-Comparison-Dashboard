@@ -5,12 +5,14 @@ interface StintsStrategyProps {
   driver1: Driver | null;
   driver2: Driver | null;
   stints: Stint[];
+  isComparisonMode?: boolean;
 }
 
 export const StintsStrategy: React.FC<StintsStrategyProps> = ({
   driver1,
   driver2,
   stints,
+  isComparisonMode = true,
 }) => {
   const formatColor = (hex?: string) => {
     if (!hex) return '#e10600';
@@ -119,7 +121,7 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
                 className="bg-pitwall-panel px-2 py-0.5 rounded border border-pitwall-border flex items-center gap-1.5"
               >
                 <span className="text-pitwall-textMuted">Stint {stint.stint_number}:</span>
-                <span className="font-bold text-white flex items-center gap-1">
+                <span className="font-bold text-pitwall-textBright flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tyreCol }} aria-hidden="true" />
                   {stint.compound}
                 </span>
@@ -150,30 +152,30 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
         <div className="flex items-center gap-3 text-xs font-mono">
           <div className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full bg-[#e10600]" aria-hidden="true" />
-            <span className="text-white">Soft</span>
+            <span className="text-pitwall-textBright">Soft</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full bg-[#ffd100]" aria-hidden="true" />
-            <span className="text-white">Medium</span>
+            <span className="text-pitwall-textBright">Medium</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-white" aria-hidden="true" />
-            <span className="text-white">Hard</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white border border-pitwall-border" aria-hidden="true" />
+            <span className="text-pitwall-textBright">Hard</span>
           </div>
         </div>
       </div>
 
       {/* Stint Bars */}
       <div className="space-y-3">
-        {renderStintBar(s1List, driver1, c1Color, 'Channel 1 Reference')}
-        {renderStintBar(s2List, driver2, c2Color, 'Channel 2 Comparison')}
+        {renderStintBar(s1List, driver1, c1Color, isComparisonMode ? 'Channel 1 Reference' : 'Primary Car Telemetry')}
+        {isComparisonMode && renderStintBar(s2List, driver2, c2Color, 'Channel 2 Comparison')}
       </div>
 
       {/* Degradation Matrix */}
       <div className="mt-4 pt-3 border-t border-pitwall-border grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
         <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
           <span className="text-pitwall-textMuted block text-[10px] uppercase">Soft Compound (C4/C5)</span>
-          <span className="font-bold text-white text-sm block mt-0.5">~0.082s / lap drop-off</span>
+          <span className="font-bold text-pitwall-textBright text-sm block mt-0.5">~0.082s / lap drop-off</span>
           <span className="text-[11px] text-pitwall-textSecondary mt-1 block">
             High initial bite with thermal cliff after 15-18 laps of sustained push.
           </span>
@@ -181,7 +183,7 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
 
         <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
           <span className="text-pitwall-textMuted block text-[10px] uppercase">Medium Compound (C3)</span>
-          <span className="font-bold text-white text-sm block mt-0.5">~0.048s / lap drop-off</span>
+          <span className="font-bold text-pitwall-textBright text-sm block mt-0.5">~0.048s / lap drop-off</span>
           <span className="text-[11px] text-pitwall-textSecondary mt-1 block">
             Primary race tyre. Consistent delta through 24-28 laps before wear inflection.
           </span>
@@ -189,7 +191,7 @@ export const StintsStrategy: React.FC<StintsStrategyProps> = ({
 
         <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
           <span className="text-pitwall-textMuted block text-[10px] uppercase">Hard Compound (C1/C2)</span>
-          <span className="font-bold text-white text-sm block mt-0.5">~0.024s / lap drop-off</span>
+          <span className="font-bold text-pitwall-textBright text-sm block mt-0.5">~0.024s / lap drop-off</span>
           <span className="text-[11px] text-pitwall-textSecondary mt-1 block">
             Lowest degradation gradient with 35+ lap lifespan under green-flag running.
           </span>

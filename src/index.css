@@ -2,41 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --pitwall-bg: #eef1f6;
+  --pitwall-panel: #ffffff;
+  --pitwall-subpanel: #f5f7fa;
+  --pitwall-card: #f8fafc;
+  --pitwall-border: #d4dae8;
+  --pitwall-border-light: #bcc5dc;
+  --pitwall-text-muted: #64708a;
+  --pitwall-text-secondary: #3b455c;
+  --pitwall-text-bright: #0c101c;
+  --canvas-bg: #ffffff;
+  --canvas-grid: #e2e7f2;
+}
+
+.dark {
+  --pitwall-bg: #0d0f15;
+  --pitwall-panel: #141722;
+  --pitwall-subpanel: #191d2b;
+  --pitwall-card: #1a1e2d;
+  --pitwall-border: #252a3b;
+  --pitwall-border-light: #32394f;
+  --pitwall-text-muted: #6f778c;
+  --pitwall-text-secondary: #9ca4ba;
+  --pitwall-text-bright: #f3f5f9;
+  --canvas-bg: #0b0c12;
+  --canvas-grid: #1a1e2b;
+}
+
 @layer base {
   body {
-    background-color: #0d0f15;
-    color: #e2e6f0;
+    background-color: var(--pitwall-bg);
+    color: var(--pitwall-text-bright);
     font-family: 'Titillium Web', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  /* Monospace figures across telemetry and timing numbers */
   .font-mono, .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
 }
 
-/* Crisp Pit-Wall Scrollbar */
+/* Crisp Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0d0f15;
+  background: var(--pitwall-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #252a3b;
+  background: var(--pitwall-border);
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3e465e;
+  background: var(--pitwall-border-light);
 }
 
-/* Focus outline for accessibility */
 :focus-visible {
   outline: 2px solid #e10600;
   outline-offset: 1px;

@@ -239,7 +239,8 @@ export function alignTelemetryForComparison(
   car1Data: CarTelemetry[],
   car2Data: CarTelemetry[]
 ): CarTelemetryComparisonPoint[] {
-  if (!car1Data.length || !car2Data.length) return [];
+  if (!car1Data.length) return [];
+  const validCar2 = car2Data && car2Data.length ? car2Data : car1Data;
 
   const pointsCount = 120;
   const result: CarTelemetryComparisonPoint[] = [];
@@ -254,7 +255,7 @@ export function alignTelemetryForComparison(
   for (let i = 0; i < pointsCount; i++) {
     const ratio = i / (pointsCount - 1);
     const c1 = sample(car1Data, ratio);
-    const c2 = sample(car2Data, ratio);
+    const c2 = sample(validCar2, ratio);
 
     const speedDelta = c1.speed - c2.speed;
     cumulativeTimeDelta += (speedDelta / 3.6) * 0.005;

@@ -9,15 +9,15 @@ export default {
     extend: {
       colors: {
         pitwall: {
-          bg: '#0d0f15',
-          panel: '#141722',
-          subpanel: '#191d2b',
-          card: '#1a1e2d',
-          border: '#252a3b',
-          borderLight: '#32394f',
-          textMuted: '#6f778c',
-          textSecondary: '#9ca4ba',
-          textBright: '#f3f5f9',
+          bg: 'var(--pitwall-bg)',
+          panel: 'var(--pitwall-panel)',
+          subpanel: 'var(--pitwall-subpanel)',
+          card: 'var(--pitwall-card)',
+          border: 'var(--pitwall-border)',
+          borderLight: 'var(--pitwall-border-light)',
+          textMuted: 'var(--pitwall-text-muted)',
+          textSecondary: 'var(--pitwall-text-secondary)',
+          textBright: 'var(--pitwall-text-bright)',
         },
         fia: {
           purple: '#b142f5', // Overall session fastest

@@ -6,6 +6,8 @@ interface HeadToHeadRadarProps {
   driver2: Driver | null;
   stats1: CarAnalysisStats;
   stats2: CarAnalysisStats;
+  selectedYear?: number;
+  isComparisonMode?: boolean;
 }
 
 export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
@@ -13,6 +15,8 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
   driver2,
   stats1,
   stats2,
+  selectedYear = 2026,
+  isComparisonMode = true,
 }) => {
   const formatColor = (hex?: string) => {
     if (!hex) return '#e10600';
@@ -32,7 +36,9 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
       c2Pct: Math.min(100, Math.round((stats2.topSpeed / 355) * 100)),
       diff: stats1.topSpeed - stats2.topSpeed,
       unit: 'km/h',
-      description: 'End-of-straight terminal velocity with DRS deployed',
+      description: selectedYear >= 2026
+        ? 'End-of-straight terminal velocity with active aerodynamics (X-Mode) engaged'
+        : 'End-of-straight terminal velocity with DRS deployed',
     },
     {
       category: 'Low-Speed Apex Speed',
@@ -102,12 +108,16 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c1Color }} aria-hidden="true" />
-            <span className="font-bold text-white">{driver1?.name_acronym}</span>
+            <span className="font-bold text-pitwall-textBright">
+              {driver1?.name_acronym} {!isComparisonMode && '(Solo Car Profile)'}
+            </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c2Color }} aria-hidden="true" />
-            <span className="font-bold text-white">{driver2?.name_acronym}</span>
-          </div>
+          {isComparisonMode && driver2 && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c2Color }} aria-hidden="true" />
+              <span className="font-bold text-pitwall-textBright">{driver2?.name_acronym}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -124,17 +134,23 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="font-bold text-pitwall-textBright">{m.category}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                    c1Ahead
-                      ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-500/30'
-                      : c2Ahead
-                      ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30'
-                      : 'text-pitwall-textMuted bg-pitwall-bg'
-                  }`}
-                >
-                  {c1Ahead ? `${driver1?.name_acronym} +${Math.abs(m.diff)} ${m.unit}` : c2Ahead ? `${driver2?.name_acronym} +${Math.abs(m.diff)} ${m.unit}` : 'Parity'}
-                </span>
+                {isComparisonMode ? (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                      c1Ahead
+                        ? 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/30'
+                        : c2Ahead
+                        ? 'text-cyan-500 bg-cyan-500/10 border border-cyan-500/30'
+                        : 'text-pitwall-textMuted bg-pitwall-bg'
+                    }`}
+                  >
+                    {c1Ahead ? `${driver1?.name_acronym} +${Math.abs(m.diff)} ${m.unit}` : c2Ahead ? `${driver2?.name_acronym} +${Math.abs(m.diff)} ${m.unit}` : 'Parity'}
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded font-bold text-pitwall-textMuted bg-pitwall-bg border border-pitwall-border">
+                    Telemetry Channel
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-pitwall-textMuted mb-2.5">{m.description}</p>
 
@@ -151,26 +167,28 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
                       style={{ width: `${m.c1Pct}%`, backgroundColor: c1Color }}
                     />
                   </div>
-                  <span className="w-16 text-right font-bold text-white tabular-nums text-[11px]">
+                  <span className="w-16 text-right font-bold text-pitwall-textBright tabular-nums text-[11px]">
                     {m.c1Val}
                   </span>
                 </div>
 
-                {/* Car 2 */}
-                <div className="flex items-center gap-2">
-                  <span className="w-9 font-bold text-[11px]" style={{ color: c2Color }}>
-                    {driver2?.name_acronym}
-                  </span>
-                  <div className="flex-1 h-2 bg-pitwall-bg rounded-xs overflow-hidden">
-                    <div
-                      className="h-full rounded-xs transition-all duration-200"
-                      style={{ width: `${m.c2Pct}%`, backgroundColor: c2Color }}
-                    />
+                {/* Car 2 (Only in comparison mode) */}
+                {isComparisonMode && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-9 font-bold text-[11px]" style={{ color: c2Color }}>
+                      {driver2?.name_acronym}
+                    </span>
+                    <div className="flex-1 h-2 bg-pitwall-bg rounded-xs overflow-hidden">
+                      <div
+                        className="h-full rounded-xs transition-all duration-200"
+                        style={{ width: `${m.c2Pct}%`, backgroundColor: c2Color }}
+                      />
+                    </div>
+                    <span className="w-16 text-right font-bold text-pitwall-textBright tabular-nums text-[11px]">
+                      {m.c2Val}
+                    </span>
                   </div>
-                  <span className="w-16 text-right font-bold text-white tabular-nums text-[11px]">
-                    {m.c2Val}
-                  </span>
-                </div>
+                )}
               </div>
             </div>
           );
@@ -184,23 +202,29 @@ export const HeadToHeadRadar: React.FC<HeadToHeadRadarProps> = ({
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
-            <span className="font-bold text-white block mb-1">High-Speed Section</span>
+            <span className="font-bold text-pitwall-textBright block mb-1">High-Speed Section</span>
             <p className="text-[11px] text-pitwall-textSecondary leading-relaxed">
-              {stats1.topSpeed >= stats2.topSpeed ? driver1?.full_name : driver2?.full_name} carries +{Math.abs(stats1.topSpeed - stats2.topSpeed)} km/h terminal velocity, suggesting a lower aerodynamic drag configuration or higher ERS deployment on the primary straight.
+              {isComparisonMode
+                ? `${stats1.topSpeed >= stats2.topSpeed ? driver1?.full_name : driver2?.full_name} carries +${Math.abs(stats1.topSpeed - stats2.topSpeed)} km/h terminal velocity, suggesting a lower aerodynamic drag configuration or higher ERS deployment on the primary straight.`
+                : `${driver1?.full_name} logs a top terminal velocity of ${stats1.topSpeed} km/h on the main straight.`}
             </p>
           </div>
 
           <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
-            <span className="font-bold text-white block mb-1">Apex Balance</span>
+            <span className="font-bold text-pitwall-textBright block mb-1">Apex Balance</span>
             <p className="text-[11px] text-pitwall-textSecondary leading-relaxed">
-              {stats1.apexSpeed >= stats2.apexSpeed ? driver1?.name_acronym : driver2?.name_acronym} maintains +{Math.abs(stats1.apexSpeed - stats2.apexSpeed)} km/h higher minimum speed through slow corners, pointing to stronger front-end mechanical bite on corner entry.
+              {isComparisonMode
+                ? `${stats1.apexSpeed >= stats2.apexSpeed ? driver1?.name_acronym : driver2?.name_acronym} maintains +${Math.abs(stats1.apexSpeed - stats2.apexSpeed)} km/h higher minimum speed through slow corners, pointing to stronger front-end mechanical bite on corner entry.`
+                : `${driver1?.name_acronym} maintains a minimum apex speed of ${stats1.apexSpeed} km/h through slow-speed corners.`}
             </p>
           </div>
 
           <div className="bg-pitwall-subpanel border border-pitwall-border rounded p-2.5">
-            <span className="font-bold text-white block mb-1">Power Application</span>
+            <span className="font-bold text-pitwall-textBright block mb-1">Power Application</span>
             <p className="text-[11px] text-pitwall-textSecondary leading-relaxed">
-              {stats1.timeUnderFullThrottle >= stats2.timeUnderFullThrottle ? driver1?.name_acronym : driver2?.name_acronym} logged {Math.abs(stats1.timeUnderFullThrottle - stats2.timeUnderFullThrottle)}% more time at 100% throttle, gaining time on traction-limited corner exits.
+              {isComparisonMode
+                ? `${stats1.timeUnderFullThrottle >= stats2.timeUnderFullThrottle ? driver1?.name_acronym : driver2?.name_acronym} logged ${Math.abs(stats1.timeUnderFullThrottle - stats2.timeUnderFullThrottle)}% more time at 100% throttle, gaining time on traction-limited corner exits.`
+                : `${driver1?.name_acronym} spends ${stats1.timeUnderFullThrottle}% of lap distance at 100% throttle.`}
             </p>
           </div>
         </div>

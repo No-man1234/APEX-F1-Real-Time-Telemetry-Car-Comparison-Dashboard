@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import type { Driver, CarTelemetryComparisonPoint } from '../types/f1';
+import { getAeroModeDetails } from '../utils/f1Formatters';
 
 interface CockpitHUDProps {
   driver1: Driver | null;
   driver2: Driver | null;
   currentPoint: CarTelemetryComparisonPoint | null;
+  selectedYear: number;
+  isComparisonMode: boolean;
 }
 
 export const CockpitHUD: React.FC<CockpitHUDProps> = ({
   driver1,
   driver2,
-  currentPoint
+  currentPoint,
+  selectedYear,
+  isComparisonMode,
 }) => {
   const [useMph, setUseMph] = useState(false);
 
@@ -39,7 +44,6 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
   const toSpeed = (val: number) => (useMph ? Math.round(val * 0.621371) : val);
   const speedUnit = useMph ? 'MPH' : 'KM/H';
 
-  // 15-LED Sequential Rev Counter (5 Green, 5 Red, 5 Blue)
   const renderShiftLights = (rpm: number) => {
     const totalLeds = 15;
     const minRpm = 6000;
@@ -51,7 +55,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
     const isShiftWindow = rpm >= 12100;
 
     return (
-      <div className="flex items-center justify-between gap-1 p-1.5 rounded bg-[#090b10] border border-pitwall-border">
+      <div className="flex items-center justify-between gap-1 p-1.5 rounded bg-pitwall-bg border border-pitwall-border">
         {Array.from({ length: totalLeds }).map((_, i) => {
           let ledColor = '#00d26a'; // Green 1-5
           if (i >= 5 && i < 10) ledColor = '#e10600'; // Red 6-10
@@ -65,8 +69,8 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
                 isShiftWindow && i >= 10 ? 'animate-pulse' : ''
               }`}
               style={{
-                backgroundColor: isActive ? ledColor : '#181c28',
-                border: `1px solid ${isActive ? ledColor : '#252a3b'}`,
+                backgroundColor: isActive ? ledColor : 'var(--pitwall-panel)',
+                border: `1px solid ${isActive ? ledColor : 'var(--pitwall-border)'}`,
               }}
               aria-hidden="true"
             />
@@ -84,10 +88,12 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
     rpm: number,
     throttle: number,
     brake: number,
-    drs: boolean,
+    drsActive: boolean,
     delta: number,
     channelLabel: string
   ) => {
+    const aero = getAeroModeDetails(selectedYear, drsActive);
+
     return (
       <div className="bg-pitwall-subpanel border border-pitwall-border rounded-lg p-4 flex flex-col justify-between">
         {/* Steering Wheel Header */}
@@ -109,15 +115,15 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
             </div>
           </div>
 
-          {/* DRS State */}
+          {/* Dynamic 2026+ Aero Mode vs pre-2026 DRS */}
           <div
             className={`px-2.5 py-0.5 rounded text-[11px] font-mono font-bold border ${
-              drs
-                ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/50'
+              drsActive
+                ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/50'
                 : 'bg-pitwall-bg text-pitwall-textMuted border-pitwall-border'
             }`}
           >
-            {drs ? 'DRS ENABLED' : 'DRS CLOSED'}
+            {aero.badgeLabel}
           </div>
         </div>
 
@@ -126,18 +132,18 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
           {renderShiftLights(rpm)}
           <div className="flex justify-between items-center text-[10px] font-mono text-pitwall-textMuted mt-1">
             <span>6k</span>
-            <span className="text-white font-bold tabular-nums">{rpm.toLocaleString()} RPM</span>
+            <span className="text-pitwall-textBright font-bold tabular-nums">{rpm.toLocaleString()} RPM</span>
             <span>12.5k</span>
           </div>
         </div>
 
         {/* PCU-8D Display Core */}
-        <div className="bg-[#08090d] border border-pitwall-border rounded p-3 grid grid-cols-3 gap-2 items-center mb-3 text-center font-mono">
+        <div className="bg-pitwall-bg border border-pitwall-border rounded p-3 grid grid-cols-3 gap-2 items-center mb-3 text-center font-mono">
           {/* Velocity Display */}
-          <div className="col-span-2 bg-[#0d0f15] border border-pitwall-border/80 rounded p-2">
+          <div className="col-span-2 bg-pitwall-panel border border-pitwall-border/80 rounded p-2">
             <span className="text-[10px] text-pitwall-textMuted block uppercase">VELOCITY</span>
             <div className="flex items-baseline justify-center gap-1 mt-0.5">
-              <span className="text-4xl font-extrabold text-white tracking-tighter tabular-nums">
+              <span className="text-4xl font-extrabold text-pitwall-textBright tracking-tighter tabular-nums">
                 {toSpeed(speed)}
               </span>
               <span className="text-[11px] text-pitwall-textMuted font-bold">{speedUnit}</span>
@@ -145,7 +151,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
           </div>
 
           {/* Large Gear Character */}
-          <div className="bg-[#0d0f15] border border-pitwall-border/80 rounded p-2 flex flex-col justify-center">
+          <div className="bg-pitwall-panel border border-pitwall-border/80 rounded p-2 flex flex-col justify-center">
             <span className="text-[10px] text-pitwall-textMuted block uppercase">GEAR</span>
             <span className="text-4xl font-black text-amber-400 tabular-nums">
               {gear > 0 ? gear : 'N'}
@@ -153,27 +159,29 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
           </div>
         </div>
 
-        {/* Telemetry Delta Pill */}
-        <div className="bg-pitwall-bg border border-pitwall-border rounded p-2 flex items-center justify-between text-xs font-mono mb-3">
-          <span className="text-pitwall-textMuted text-[11px]">LAP DELTA (Δt):</span>
-          <span
-            className={`font-bold tabular-nums ${
-              delta >= 0 ? 'text-emerald-400' : 'text-rose-400'
-            }`}
-          >
-            {delta >= 0 ? `+${delta.toFixed(3)}s` : `${delta.toFixed(3)}s`}
-          </span>
-        </div>
+        {/* Lap Delta (Only in comparison mode) */}
+        {isComparisonMode && (
+          <div className="bg-pitwall-bg border border-pitwall-border rounded p-2 flex items-center justify-between text-xs font-mono mb-3">
+            <span className="text-pitwall-textMuted text-[11px]">LAP DELTA (Δt):</span>
+            <span
+              className={`font-bold tabular-nums ${
+                delta >= 0 ? 'text-emerald-400' : 'text-rose-400'
+              }`}
+            >
+              {delta >= 0 ? `+${delta.toFixed(3)}s` : `${delta.toFixed(3)}s`}
+            </span>
+          </div>
+        )}
 
         {/* Graduated Pedal Gauges */}
         <div className="grid grid-cols-2 gap-2 text-xs font-mono">
           {/* Throttle Bar */}
-          <div className="bg-[#0a0c12] border border-pitwall-border rounded p-2">
+          <div className="bg-pitwall-bg border border-pitwall-border rounded p-2">
             <div className="flex justify-between items-center text-[11px] mb-1">
               <span className="text-emerald-400 font-bold">THROTTLE</span>
-              <span className="text-white font-bold tabular-nums">{throttle}%</span>
+              <span className="text-pitwall-textBright font-bold tabular-nums">{throttle}%</span>
             </div>
-            <div className="w-full h-2.5 bg-pitwall-bg rounded-xs overflow-hidden">
+            <div className="w-full h-2.5 bg-pitwall-panel rounded-xs overflow-hidden">
               <div
                 className="h-full bg-emerald-500 transition-all duration-75"
                 style={{ width: `${throttle}%` }}
@@ -182,12 +190,12 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
           </div>
 
           {/* Brake Bar */}
-          <div className="bg-[#0a0c12] border border-pitwall-border rounded p-2">
+          <div className="bg-pitwall-bg border border-pitwall-border rounded p-2">
             <div className="flex justify-between items-center text-[11px] mb-1">
               <span className="text-rose-400 font-bold">BRAKE</span>
-              <span className="text-white font-bold tabular-nums">{brake}%</span>
+              <span className="text-pitwall-textBright font-bold tabular-nums">{brake}%</span>
             </div>
-            <div className="w-full h-2.5 bg-pitwall-bg rounded-xs overflow-hidden">
+            <div className="w-full h-2.5 bg-pitwall-panel rounded-xs overflow-hidden">
               <div
                 className="h-full bg-rose-500 transition-all duration-75"
                 style={{ width: `${brake}%` }}
@@ -204,10 +212,10 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
       <div className="flex items-center justify-between pb-3 mb-3 border-b border-pitwall-border">
         <div>
           <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-pitwall-textBright">
-            Cockpit Telemetry Gauges
+            Cockpit Telemetry Display
           </h2>
           <p className="text-xs text-pitwall-textMuted font-mono">
-            Dual Steering Wheel Displays • Shift Light Sequencing • Pedal Travel
+            {isComparisonMode ? 'Dual Steering Wheel Displays' : 'Primary Steering Wheel Telemetry'} • Shift Light Sequencing • Pedal Travel
           </p>
         </div>
 
@@ -217,7 +225,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
             onClick={() => setUseMph(false)}
             aria-pressed={!useMph}
             className={`px-2 py-0.5 rounded font-bold text-[11px] ${
-              !useMph ? 'bg-pitwall-card text-white' : 'text-pitwall-textMuted hover:text-white'
+              !useMph ? 'bg-pitwall-card text-pitwall-textBright' : 'text-pitwall-textMuted hover:text-pitwall-textBright'
             }`}
           >
             KM/H
@@ -226,7 +234,7 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
             onClick={() => setUseMph(true)}
             aria-pressed={useMph}
             className={`px-2 py-0.5 rounded font-bold text-[11px] ${
-              useMph ? 'bg-pitwall-card text-white' : 'text-pitwall-textMuted hover:text-white'
+              useMph ? 'bg-pitwall-card text-pitwall-textBright' : 'text-pitwall-textMuted hover:text-pitwall-textBright'
             }`}
           >
             MPH
@@ -234,8 +242,8 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
         </div>
       </div>
 
-      {/* Dual Steering Wheel Displays Side-by-Side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Steering Wheel Display: Single or Dual based on isComparisonMode */}
+      <div className={`grid gap-4 ${isComparisonMode ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 max-w-xl mx-auto'}`}>
         {renderWheelDisplay(
           driver1,
           c1Color,
@@ -246,9 +254,9 @@ export const CockpitHUD: React.FC<CockpitHUDProps> = ({
           c1Brake,
           c1Drs,
           timeDelta,
-          'Reference Car'
+          isComparisonMode ? 'Reference Car' : 'Active Telemetry'
         )}
-        {renderWheelDisplay(
+        {isComparisonMode && renderWheelDisplay(
           driver2,
           c2Color,
           c2Speed,

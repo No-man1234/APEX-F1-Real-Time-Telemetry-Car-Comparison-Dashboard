@@ -9,6 +9,8 @@ interface TrackMinimapProps {
   progressPercentage: number;
   locations?: { x: number; y: number }[];
   onTrackClick?: (percentage: number) => void;
+  isComparisonMode: boolean;
+  theme: 'dark' | 'light';
 }
 
 export const TrackMinimap: React.FC<TrackMinimapProps> = ({
@@ -18,6 +20,8 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
   progressPercentage,
   locations,
   onTrackClick,
+  isComparisonMode,
+  theme,
 }) => {
   const formatColor = (hex?: string) => {
     if (!hex) return '#e10600';
@@ -27,7 +31,6 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
   const c1Color = formatColor(driver1?.team_colour || '3671C6');
   const c2Color = formatColor(driver2?.team_colour || 'FF8000');
 
-  // Track coordinates
   const trackPoints = useMemo(() => {
     if (locations && locations.length > 20) {
       return locations;
@@ -35,7 +38,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
     return generateMonzaTrackCoordinates();
   }, [locations]);
 
-  // Normalize points to SVG coordinate space [40, 40] to [520, 320]
+  // Normalize points to SVG coordinate space
   const { pathString, s1Path, s2Path, s3Path, c1Pos, c2Pos, mappedPoints } = useMemo(() => {
     if (!trackPoints.length) {
       return {
@@ -77,7 +80,6 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
     const mapped = trackPoints.map(toSvg);
     const fullPath = mapped.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ') + ' Z';
 
-    // Sector divisions
     const n = mapped.length;
     const s1End = Math.floor(n * 0.33);
     const s2End = Math.floor(n * 0.68);
@@ -101,14 +103,12 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
     };
   }, [trackPoints, progressPercentage]);
 
-  // Click handler on track to jump scrubber
   const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!onTrackClick || !mappedPoints.length) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = ((e.clientX - rect.left) / rect.width) * 560;
     const clickY = ((e.clientY - rect.top) / rect.height) * 340;
 
-    // Find closest track point
     let closestIdx = 0;
     let closestDist = Infinity;
 
@@ -126,6 +126,8 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
     }
   };
 
+  const isDark = theme === 'dark';
+
   return (
     <section aria-label="Circuit GPS Track & Position Radar" className="bg-pitwall-panel border border-pitwall-border rounded-lg p-4 mb-5 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-pitwall-border">
@@ -142,20 +144,22 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c1Color }} aria-hidden="true" />
-            <span className="font-bold text-white">{driver1?.name_acronym || 'C1'}</span>
+            <span className="font-bold text-pitwall-textBright">{driver1?.name_acronym || 'C1'}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c2Color }} aria-hidden="true" />
-            <span className="font-bold text-white">{driver2?.name_acronym || 'C2'}</span>
-          </div>
+          {isComparisonMode && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: c2Color }} aria-hidden="true" />
+              <span className="font-bold text-pitwall-textBright">{driver2?.name_acronym || 'C2'}</span>
+            </div>
+          )}
           <div className="text-pitwall-textMuted hidden sm:inline">
-            Sector: <span className="text-white font-bold">{progressPercentage < 33 ? '1' : progressPercentage < 68 ? '2' : '3'}</span>
+            Sector: <span className="text-pitwall-textBright font-bold">{progressPercentage < 33 ? '1' : progressPercentage < 68 ? '2' : '3'}</span>
           </div>
         </div>
       </div>
 
       {/* SVG Circuit Canvas */}
-      <div className="relative w-full h-[320px] bg-[#0b0c12] rounded border border-pitwall-border flex items-center justify-center overflow-hidden cursor-pointer">
+      <div className="relative w-full h-[320px] bg-pitwall-bg rounded border border-pitwall-border flex items-center justify-center overflow-hidden cursor-pointer">
         <svg
           viewBox="0 0 560 340"
           onClick={handleSvgClick}
@@ -165,13 +169,13 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
           <path
             d={pathString}
             fill="none"
-            stroke="#1a1e2c"
+            stroke={isDark ? '#1a1e2c' : '#d8dfec'}
             strokeWidth="10"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
 
-          {/* Sector 1 (Yellow Tint) */}
+          {/* Sector 1 (Yellow) */}
           <path
             d={s1Path}
             fill="none"
@@ -179,10 +183,10 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
             strokeWidth="3.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity="0.8"
+            opacity="0.85"
           />
 
-          {/* Sector 2 (Cyan Tint) */}
+          {/* Sector 2 (Cyan) */}
           <path
             d={s2Path}
             fill="none"
@@ -190,10 +194,10 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
             strokeWidth="3.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity="0.8"
+            opacity="0.85"
           />
 
-          {/* Sector 3 (Magenta Tint) */}
+          {/* Sector 3 (Magenta) */}
           <path
             d={s3Path}
             fill="none"
@@ -201,20 +205,20 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
             strokeWidth="3.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity="0.8"
+            opacity="0.85"
           />
 
           {/* Start / Finish Line */}
           <circle cx="280" cy="50" r="3.5" fill="#ffffff" stroke="#e10600" strokeWidth="2" />
 
-          {/* Car 2 Marker */}
-          {c2Pos && (
+          {/* Car 2 Marker (Only in comparison mode) */}
+          {isComparisonMode && c2Pos && (
             <g transform={`translate(${c2Pos.x}, ${c2Pos.y})`}>
               <circle r="7" fill={c2Color} stroke="#ffffff" strokeWidth="1.5" />
               <text
                 y="-10"
                 textAnchor="middle"
-                fill="#ffffff"
+                fill={isDark ? '#ffffff' : '#0c101c'}
                 fontSize="9"
                 fontFamily="monospace"
                 fontWeight="bold"
@@ -232,7 +236,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
               <text
                 y="-11"
                 textAnchor="middle"
-                fill="#ffffff"
+                fill={isDark ? '#ffffff' : '#0c101c'}
                 fontSize="9"
                 fontFamily="monospace"
                 fontWeight="bold"
