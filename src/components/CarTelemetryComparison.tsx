@@ -767,6 +767,7 @@ export const CarTelemetryComparison: React.FC<CarTelemetryComparisonProps> = ({
           type="range"
           min="0"
           max={Math.max(0, data.length - 1)}
+          step="any"
           value={currentPointIndex}
           onChange={(e) => onScrub(Number(e.target.value))}
           className="w-full h-2 bg-pitwall-subpanel rounded appearance-none cursor-pointer accent-[#e10600]"

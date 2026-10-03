@@ -23,7 +23,8 @@ import {
   getIntervals,
   getWeather,
   alignTelemetryForComparison,
-  calculateCarStats
+  calculateCarStats,
+  interpolateTelemetryPoint
 } from './services/f1Api';
 import {
   SAMPLE_MEETING,
@@ -414,7 +415,9 @@ export const App: React.FC = () => {
     return calculateCarStats(car2Telemetry);
   }, [car2Telemetry]);
 
-  const currentPoint = comparisonData[currentPointIndex] || comparisonData[0] || null;
+  const currentPoint = useMemo(() => {
+    return interpolateTelemetryPoint(comparisonData, currentPointIndex);
+  }, [comparisonData, currentPointIndex]);
 
   // Selected driver lap duration for authentic 1x pacing
   const selectedPlayerLapDuration = useMemo(() => {
@@ -423,28 +426,42 @@ export const App: React.FC = () => {
     return recorded && recorded > 30 && recorded < 180 ? recorded : 90;
   }, [driver1, driverLapsMap]);
 
-  // Global synchronized playback loop across all views/tabs
+  // Global synchronized playback loop across all views/tabs with smooth 60 FPS sub-frame interpolation
   useEffect(() => {
     if (!isPlaying || !comparisonData.length) return;
 
+    let animationFrameId: number;
+    let lastTime = performance.now();
     const baseDuration = selectedPlayerLapDuration > 0 ? selectedPlayerLapDuration : 90;
-    const stepIntervalMs = Math.max(
-      16,
-      Math.round((baseDuration / comparisonData.length) * (1000 / playbackSpeed))
-    );
+    const totalPoints = comparisonData.length;
 
-    const interval = setInterval(() => {
+    const animate = (currentTime: number) => {
+      const dt = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
+      // Rate of index progression per second
+      const pointsPerSecond = ((totalPoints - 1) / baseDuration) * playbackSpeed;
+      const step = pointsPerSecond * dt;
+
       setCurrentPointIndex((prev) => {
-        const next = prev + 1;
-        if (next >= comparisonData.length) {
+        const next = prev + step;
+        if (next >= totalPoints - 1) {
           setIsPlaying(false);
           return 0;
         }
         return next;
       });
-    }, stepIntervalMs);
 
-    return () => clearInterval(interval);
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [isPlaying, comparisonData.length, playbackSpeed, selectedPlayerLapDuration]);
 
   return (

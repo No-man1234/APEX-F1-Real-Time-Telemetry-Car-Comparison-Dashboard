@@ -333,3 +333,48 @@ export function calculateCarStats(data: CarTelemetry[]): CarAnalysisStats {
     drsUsage: Math.round((drsOpenCount / data.length) * 100)
   };
 }
+
+/**
+ * Smoothly interpolates telemetry between two adjacent comparison points
+ * to support continuous, fluid 60 FPS replay and sub-frame scrubbing.
+ */
+export function interpolateTelemetryPoint(
+  data: CarTelemetryComparisonPoint[],
+  floatIndex: number
+): CarTelemetryComparisonPoint | null {
+  if (!data.length) return null;
+  if (data.length === 1) return data[0];
+
+  const clamped = Math.max(0, Math.min(data.length - 1, floatIndex));
+  const i = Math.floor(clamped);
+  const j = Math.min(data.length - 1, i + 1);
+  const f = clamped - i;
+
+  const p1 = data[i];
+  if (f <= 0.0001 || i === j) return p1;
+  const p2 = data[j];
+
+  const lerp = (a: number, b: number) => a + (b - a) * f;
+  const lerpRound = (a: number, b: number) => Math.round(a + (b - a) * f);
+
+  return {
+    index: clamped,
+    percentage: Number(lerp(p1.percentage, p2.percentage).toFixed(1)),
+    distance: lerpRound(p1.distance, p2.distance),
+    c1Speed: lerpRound(p1.c1Speed, p2.c1Speed),
+    c1Throttle: lerpRound(p1.c1Throttle, p2.c1Throttle),
+    c1Brake: lerpRound(p1.c1Brake, p2.c1Brake),
+    c1Rpm: lerpRound(p1.c1Rpm, p2.c1Rpm),
+    c1Gear: f < 0.5 ? p1.c1Gear : p2.c1Gear,
+    c1Drs: f < 0.5 ? p1.c1Drs : p2.c1Drs,
+    c2Speed: lerpRound(p1.c2Speed, p2.c2Speed),
+    c2Throttle: lerpRound(p1.c2Throttle, p2.c2Throttle),
+    c2Brake: lerpRound(p1.c2Brake, p2.c2Brake),
+    c2Rpm: lerpRound(p1.c2Rpm, p2.c2Rpm),
+    c2Gear: f < 0.5 ? p1.c2Gear : p2.c2Gear,
+    c2Drs: f < 0.5 ? p1.c2Drs : p2.c2Drs,
+    speedDelta: lerpRound(p1.speedDelta, p2.speedDelta),
+    timeDelta: Number(lerp(p1.timeDelta, p2.timeDelta).toFixed(3)),
+  };
+}
+

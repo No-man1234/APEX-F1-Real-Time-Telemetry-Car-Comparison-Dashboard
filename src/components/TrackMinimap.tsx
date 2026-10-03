@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { Driver, Meeting } from '../types/f1';
-import { generateBahrainTrackCoordinates, generateMonzaTrackCoordinates } from '../services/sampleData';
+import { getCircuitCoordinates } from '../services/circuitCoordinates';
 import { Play, Pause, RotateCcw } from 'lucide-react';
 
 interface TrackMinimapProps {
@@ -50,10 +50,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
     if (locations && locations.length > 20) {
       return locations;
     }
-    const mName = (meeting?.meeting_name || '').toLowerCase();
-    const cName = (meeting?.circuit_short_name || '').toLowerCase();
-    const isBahrain = cName.includes('sakhir') || cName.includes('bahrain') || mName.includes('bahrain') || cName.includes('kuala');
-    return isBahrain ? generateBahrainTrackCoordinates() : generateMonzaTrackCoordinates();
+    return getCircuitCoordinates(meeting?.circuit_short_name, meeting?.meeting_name);
   }, [locations, meeting]);
 
   // Normalize points to SVG coordinate space
@@ -109,16 +106,35 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
     const s3Segment = [...mapped.slice(s2End), mapped[0]].map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ');
 
     const ratio = Math.max(0, Math.min(1, progressPercentage / 100));
-    const idx1 = Math.floor(ratio * (n - 1));
-    const idx2 = Math.max(0, Math.min(n - 1, idx1 - 2));
+    const exactIdx1 = ratio * (n - 1);
+    const i1_floor = Math.floor(exactIdx1);
+    const i1_ceil = Math.min(n - 1, i1_floor + 1);
+    const f1 = exactIdx1 - i1_floor;
+    const p1A = mapped[i1_floor] || mapped[0];
+    const p1B = mapped[i1_ceil] || p1A;
+    const c1Pos = {
+      x: p1A.x + (p1B.x - p1A.x) * f1,
+      y: p1A.y + (p1B.y - p1A.y) * f1,
+    };
+
+    const exactIdx2 = Math.max(0, exactIdx1 - 1.5);
+    const i2_floor = Math.floor(exactIdx2);
+    const i2_ceil = Math.min(n - 1, i2_floor + 1);
+    const f2 = exactIdx2 - i2_floor;
+    const p2A = mapped[i2_floor] || mapped[0];
+    const p2B = mapped[i2_ceil] || p2A;
+    const c2Pos = {
+      x: p2A.x + (p2B.x - p2A.x) * f2,
+      y: p2A.y + (p2B.y - p2A.y) * f2,
+    };
 
     return {
       pathString: fullPath,
       s1Path: s1Segment,
       s2Path: s2Segment,
       s3Path: s3Segment,
-      c1Pos: mapped[idx1] || mapped[0],
-      c2Pos: mapped[idx2] || mapped[0],
+      c1Pos,
+      c2Pos,
       mappedPoints: mapped,
       startPos: mapped[0] || { x: 280, y: 160 },
     };
@@ -373,7 +389,7 @@ export const TrackMinimap: React.FC<TrackMinimapProps> = ({
             <span className="text-pitwall-textMuted">Sector 3</span>
           </div>
           <div className="border-l border-pitwall-border pl-2 text-pitwall-textBright font-bold">
-            Pos: {progressPercentage}% (Sector {currentSector})
+            Pos: {Math.round(progressPercentage)}% (Sector {currentSector})
             {currentSpeed !== undefined && ` • ${driver1?.name_acronym || 'C1'}: ${currentSpeed} km/h`}
             {isComparisonMode && c2Speed !== undefined && ` • ${driver2?.name_acronym || 'C2'}: ${c2Speed} km/h`}
           </div>

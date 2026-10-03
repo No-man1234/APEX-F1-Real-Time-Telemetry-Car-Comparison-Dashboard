@@ -239,6 +239,7 @@ export const FloatingReplayBar: React.FC<FloatingReplayBarProps> = ({
               type="range"
               min={0}
               max={safeTotal - 1}
+              step="any"
               value={currentPointIndex}
               onChange={(e) => onScrub(Number(e.target.value))}
               aria-label="Scrub telemetry lap timeline"
