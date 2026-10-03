@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #0b0c10;
+    color: #e0e2ec;
+    font-family: 'Titillium Web', sans-serif;
+  }
+}
+
+/* Custom Scrollbar for F1 sleek telemetry look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f1118;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2b3042;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #e10600;
+}
+
+/* Carbon fiber background texture */
+.carbon-bg {
+  background: 
+    linear-gradient(27deg, #12141c 5px, transparent 5px) 0 5px,
+    linear-gradient(207deg, #12141c 5px, transparent 5px) 10px 0px,
+    linear-gradient(27deg, #181b26 5px, transparent 5px) 0px 10px,
+    linear-gradient(207deg, #181b26 5px, transparent 5px) 10px 5px,
+    linear-gradient(90deg, #10121a 10px, transparent 10px),
+    linear-gradient(#151722 25%, #0f1017 25%, #0f1017 50%, transparent 50%, transparent 75%, #181b26 75%, #181b26);
+  background-color: #0c0e14;
+  background-size: 20px 20px;
+}
+
+/* F1 Red racing slash */
+.f1-slash {
+  clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 100%, 15px 100%);
+}
+
+.f1-card-angle {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+
+/* Glowing text */
+.text-glow-red {
+  text-shadow: 0 0 12px rgba(225, 6, 0, 0.75);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 12px rgba(0, 210, 190, 0.75);
+}
